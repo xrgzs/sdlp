@@ -1,6 +1,12 @@
 <?php
 // 输入参数
-$appId = $_GET['appid']; // 获取传入的 appid 参数
+$appId = $_GET['appid'] ?? ''; // 获取传入的 appid 参数
+
+// 检查参数
+if (!is_numeric($appId)) {
+    echo '输入参数不合法！';
+    exit;
+}
 
 // 目标网页 URL
 $url = 'http://baoku.360.cn/soft/show/appid/' . $appId;
@@ -35,11 +41,10 @@ $button = $xpath->query("//a[contains(@class, 'normal-down')]")->item(0);
 if ($button) {
     // 提取 href 属性
     $downloadLink = $button->getAttribute('href');
-    
     // 直接跳转
     header("Location: $downloadLink");
-    exit;
 } else {
     echo '未找到下载链接按钮。';
 }
+exit;
 ?>

@@ -76,6 +76,6 @@ if (!empty($matching_assets)) {
     header("Location: $url");
 } else {
     echo "未找到匹配的 release 文件。\n";
-    exit;
 }
+exit;
 ?>
