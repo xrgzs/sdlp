@@ -9,7 +9,7 @@ $mirror_name = $_GET['mirror'] ?? ''; // 如果未指定 mirror，则默认为�
 if (empty($repo)) {
     echo '未定义必需参数 repo !';
 }
-if (!empty($tag)) {
+if (!empty($tag) && $tag != 'latest') {
     // 参考：https://docs.github.com/zh/rest/releases/releases#get-a-release-by-tag-name
     $tags = 'tags/' . $tag;
 } else {
