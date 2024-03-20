@@ -19,8 +19,8 @@ curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 // 设置代理（仅中国移动需要，电信、联通直连）
-curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-curl_setopt($ch, CURLOPT_PROXY, '10.0.1.111:10809');
+// curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+// curl_setopt($ch, CURLOPT_PROXY, '10.0.1.111:10809');
 
 // 发起 POST 请求
 $response = curl_exec($ch);
