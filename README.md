@@ -7,14 +7,6 @@
 
 </div>
 
-## 部署
-
-- HTTP Web Server
-- PHP 建议使用8.1+
-  - 启用 `CURL`、`JSON` 扩展
-- 克隆本仓库到服务器的网站目录
-- 部分需要配置本地反代，并替换文件内接口
-
 ## 接口
 
 ### 自动跳转软件官网下载链接
@@ -84,3 +76,31 @@ http://your-domain/qqsoft/?softid=351 即可直接跳转到下载链接
 
 此接口内容复杂，请前往 `ghrelease` 目录阅读 `readme.md` 文件
 
+### 蓝奏API
+
+来自：https://github.com/hanximeng/LanzouAPI
+
+参数：
+
+- `url`：蓝奏云外链链接
+- `type`：是否直接下载 值：`down`
+- `pwd`：外链密码
+
+直接下载：
+
+- 无密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i6th9cd&type=down
+- 有密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&type=down&pwd=1234
+
+输出直链：
+
+- 无密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i6th9cd
+- 有密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&pwd=1234
+
+## 部署
+
+- HTTP Web Server
+- PHP 建议使用8.1+
+  - 启用 `CURL`扩展
+- 克隆本仓库到服务器的网站目录
+- 部分需要配置本地反代，并替换文件内接口
+- PHP是“最好的”语言，所以请务必配置 WAF
