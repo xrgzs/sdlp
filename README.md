@@ -66,13 +66,11 @@ http://your-domain/lestore/?softid=13407 即可直接跳转到下载链接
 
 ### 自动跳转QQ软件中心下载链接
 
-参数：`cmdid`
+参数：`softid`
 
-如软件下载页面 https://pc.qq.com/detail/2/detail_2.html ，抓取POST请求，如下图所示，`3318`即为`cmdid`
+如软件下载页面 https://pc.qq.com/detail/11/detail_351.html，`351`即为`softid`
 
-![](https://github.com/xrgzs/sdlp/assets/26499123/6de59995-0505-4e57-abb1-c8c8a7363c75)
-
-http://your-domain/qqsoft/?cmdid=3318 即可直接跳转到下载链接
+http://your-domain/qqsoft/?softid=351 即可直接跳转到下载链接
 
 ### 自动跳转Windows ISO官方下载地址
 

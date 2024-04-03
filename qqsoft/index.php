@@ -1,17 +1,24 @@
 <?php
 // 输入参数
-$cmdid = $_GET['cmdid'] ?? ''; // 获取传入的 cmdid 参数
+// $cmdid = isset($_GET['cmdid']) ? $_GET['cmdid'] : ''; // 获取传入的 cmdid 参数
+$softid = isset($_GET['softid']) ? $_GET['softid'] : ''; // 获取传入的 req 参数
 
 // 检查参数
-if (!is_numeric($cmdid)) {
-    echo '输入参数不合法！';
-    exit;
+// if (!is_numeric($cmdid) || strlen($cmdid) > 10) {
+//     die('输入参数不合法！');
+// }
+if (!is_numeric($softid) || strlen($softid) > 10) {
+    die('输入参数不合法！');
 }
+
+// 进一步过滤和转义输入，防止注入
+// $cmdid = filter_var($cmdid, FILTER_SANITIZE_NUMBER_INT);
+$req = filter_var($softid, FILTER_SANITIZE_NUMBER_INT);
 
 // 构建请求数据
 $data = [
-    'cmdid' => $cmdid,
-    'jprxReq[req][soft_id_list][]' => 2,
+    'cmdid' => 3318,
+    'jprxReq[req][soft_id_list][]' => $softid,
 ];
 
 // 初始化 cURL
@@ -27,8 +34,7 @@ $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
-    echo 'cURL 请求出错：' . curl_error($ch);
-    exit;
+    die('cURL 请求出错：' . curl_error($ch));
 }
 
 // 关闭 cURL
@@ -50,4 +56,3 @@ if (!empty($downloadUrl)) {
     echo '未找到下载链接。';
 }
 exit;
-?>
