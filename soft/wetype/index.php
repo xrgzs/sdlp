@@ -8,13 +8,12 @@ $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-// 发起 POST 请求
+// 发起 GET 请求
 $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
-    echo 'cURL 请求出错：' . curl_error($ch);
-    exit;
+    die('cURL 请求出错：' . curl_error($ch));
 }
 
 // 关闭 cURL
@@ -36,4 +35,3 @@ if (!empty($downloadUrl)) {
     echo '未找到下载链接。';
 }
 exit;
-?>

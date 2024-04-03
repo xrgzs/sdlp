@@ -36,4 +36,3 @@ if (!empty($downloadUrl)) {
     echo '未找到下载链接。';
 }
 exit;
-?>

@@ -13,9 +13,9 @@ $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
-    echo 'cURL 请求出错：' . curl_error($ch);
-    exit;
+    die('cURL 请求出错：' . curl_error($ch));
 }
+
 
 // 关闭 cURL
 curl_close($ch);
@@ -36,4 +36,3 @@ if (!empty($downloadUrl)) {
     echo '未找到下载链接。';
 }
 exit;
-?>

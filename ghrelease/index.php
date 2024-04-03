@@ -7,7 +7,7 @@ $mirror_name = $_GET['mirror'] ?? ''; // 如果未指定 mirror，则默认为�
 
 // 检查参数
 if (empty($repo)) {
-    echo '未定义必需参数 repo !';
+    die('未定义必需参数 repo !');
 }
 if (!empty($tag) && $tag != 'latest') {
     // 参考：https://docs.github.com/zh/rest/releases/releases#get-a-release-by-tag-name
@@ -49,8 +49,7 @@ $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
-    echo 'cURL错误: ' . curl_error($ch);
-    exit;
+    die('cURL 请求出错：' . curl_error($ch));
 }
 
 // 关闭 cURL
@@ -75,7 +74,6 @@ if (!empty($matching_assets)) {
     }
     header("Location: $url");
 } else {
-    echo "未找到匹配的 release 文件。\n";
+    die('未找到匹配的 release 文件。');
 }
 exit;
-?>

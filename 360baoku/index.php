@@ -1,15 +1,20 @@
 <?php
-// 输入参数
-$appId = $_GET['appid'] ?? ''; // 获取传入的 appid 参数
+// 定义常量或配置项
+define('BASE_URL', 'http://baoku.360.cn/soft/show/appid/');
 
-// 检查参数
-if (!is_numeric($appId)) {
-    echo '输入参数不合法！';
-    exit;
+// 输入参数
+$appId = isset($_GET['appid']) ? $_GET['appid'] : '';
+
+// 参数校验
+if (!is_numeric($appId) || strlen($appId) > 10) {
+    die('输入参数不合法！');
 }
 
+// 进行更严格的过滤或转义，防止URL注入
+$appId = filter_var($appId, FILTER_SANITIZE_NUMBER_INT);
+
 // 目标网页 URL
-$url = 'http://baoku.360.cn/soft/show/appid/' . $appId;
+$url = BASE_URL . $appId;
 
 // 初始化 cURL
 $ch = curl_init();
@@ -21,8 +26,7 @@ $html = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
-    echo 'cURL 请求出错：' . curl_error($ch);
-    exit;
+    die('cURL 请求出错：' . curl_error($ch));
 }
 
 // 关闭 cURL
@@ -30,7 +34,7 @@ curl_close($ch);
 
 // 使用 DOM 解析 HTML
 $dom = new DOMDocument;
-libxml_use_internal_errors(true); // 忽略 HTML 解析错误
+libxml_use_internal_errors(true);
 $dom->loadHTML($html);
 libxml_clear_errors();
 
@@ -42,9 +46,8 @@ if ($button) {
     // 提取 href 属性
     $downloadLink = $button->getAttribute('href');
     // 直接跳转
-    header("Location: $downloadLink");
+    header("Location: " . $downloadLink);
 } else {
-    echo '未找到下载链接按钮。';
+    die('未找到下载链接按钮。');
 }
 exit;
-?>
