@@ -33,7 +33,13 @@ http://your-domain/soft/qq?param=ntDownloadX64Url 直接下载 NTQQ 64位
 
 #### 微信
 
-用不着解析，直接 http://dldir1.qq.com/weixin/Windows/WeChatSetup.exe
+用不着解析，直接:
+
+http://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe
+
+http://dldir1v6.qq.com/weixin/Windows/WeChatSetup_x86.exe
+
+http://dldir1v6.qq.com/weixin/Windows/WeChat_for_XP_SP3_To_Vista.exe
 
 #### 微信输入法
 

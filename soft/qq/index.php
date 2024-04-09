@@ -41,7 +41,7 @@ if (!isset($params_array[$param])) {
 }
 
 // 获取下载地址
-$downloadUrl = $params_array[$param];
+$downloadUrl = str_replace('dldir1.qq.com', 'dldir1v6.qq.com', $params_array[$param]);
 
 // 跳转到下载地址
 if (!empty($downloadUrl)) {
