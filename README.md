@@ -11,6 +11,12 @@
 
 ### 自动跳转软件官网下载链接
 
+#### 钉钉
+
+http://your-domain/soft/dingtalk 直接下载 钉钉电脑版 x64
+
+32位不再持续更新
+
 #### 飞书
 
 http://your-domain/soft/feishu 直接下载 飞书电脑版
