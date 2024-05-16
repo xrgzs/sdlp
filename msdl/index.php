@@ -11,7 +11,7 @@ if (!is_numeric($product_id) || !is_numeric($sku_id)) {
 }
 
 // 目标网页 URL
-$url = "https://msdl.gravesoft.dev/msdl/proxy?product_id={$product_id}&sku_id={$sku_id}";
+$url = "https://api.gravesoft.dev/msdl/proxy?product_id={$product_id}&sku_id={$sku_id}";
 
 // 初始化 cURL
 $ch = curl_init();
