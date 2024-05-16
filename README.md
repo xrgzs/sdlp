@@ -100,13 +100,25 @@ http://your-domain/qqsoft/?softid=351 即可直接跳转到下载链接
 
 直接下载：
 
-- 无密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i6th9cd&type=down
-- 有密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&type=down&pwd=1234
+- 无密码：http://your-domain/lanzou/?url=https://www.lanzous.com/i6th9cd&type=down
+- 有密码：http://your-domain/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&type=down&pwd=1234
 
 输出直链：
 
-- 无密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i6th9cd
-- 有密码：https://api.hanximeng.com/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&pwd=1234
+- 无密码：http://your-domain/lanzou/?url=https://www.lanzous.com/i6th9cd
+- 有密码：http://your-domain/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&pwd=1234
+
+### 图片上传API
+
+可选部署，避免滥用请禁用
+
+搭配 PicGO / PicList 插件 自定义 API 图床使用，参数如下：
+
+API地址：http://your-domain/upload/58img.php
+
+图片表单名称：image
+
+图片URL路径：data.url
 
 ## 部署
 
