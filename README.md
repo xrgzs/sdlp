@@ -58,6 +58,10 @@ http://dldir1v6.qq.com/weixin/Windows/WeChat_for_XP_SP3_To_Vista.exe
 
 http://your-domain/soft/wetype 直接下载 微信输入法
 
+#### 百度拼音输入法
+
+http://your-domain/soft/baidupinyin 直接下载 百度拼音输入法
+
 #### RayLink
 
 http://your-domain/soft/raylink 直接下载 RayLink 完整版
