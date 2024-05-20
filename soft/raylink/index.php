@@ -1,7 +1,7 @@
 <?php
 
 // 目标网页 URL 参数
-$platform = isset($_GET['lite']) && $_GET['lite'] ? 5 : 0;
+$platform = isset($_GET['lite']) ? 5 : 0;
 
 $url = "https://api.raylink.live/api/manage/client/version/queryClientVersion?platform={$platform}";
 
