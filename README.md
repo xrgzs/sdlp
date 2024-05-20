@@ -160,7 +160,5 @@ git pull
 强制更新：
 
 ```bash
-git fetch
-git reset --hard HEAD
-git pull
+git fetch && git reset --hard && git pull
 ```
