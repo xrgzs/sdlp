@@ -24,7 +24,7 @@ if (curl_errno($ch)) {
 // 关闭 cURL
 curl_close($ch);
 
-$json_portion = substr($response, 16);
+$json_portion = substr($response, 14);
 
 // 解析 JSON 响应
 $params_array = json_decode($json_portion, true);
