@@ -21,6 +21,13 @@ http://your-domain/soft/dingtalk 直接下载 钉钉电脑版 x64
 
 http://your-domain/soft/feishu 直接下载 飞书电脑版
 
+
+#### 千牛
+
+http://your-domain/soft/qianniu 直接下载 千牛Windows x64版
+http://your-domain/soft/qianniu?param=x64 直接下载 千牛Windows x64版
+http://your-domain/soft/qianniu?param=x32 直接下载 千牛Windows x32版
+
 #### 火绒安全软件电脑版
 
 http://your-domain/soft/huorong 直接下载 火绒
