@@ -51,6 +51,12 @@ http://dldir1v6.qq.com/weixin/Windows/WeChat_for_XP_SP3_To_Vista.exe
 
 http://your-domain/soft/wetype 直接下载 微信输入法
 
+#### RayLink
+
+http://your-domain/soft/raylink 直接下载 RayLink 完整版
+
+http://your-domain/soft/raylink?lite 直接下载 RayLink Lite版
+
 ### 自动跳转360宝库软件下载链接
 
 参数：`appid`
