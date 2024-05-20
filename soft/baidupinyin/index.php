@@ -1,7 +1,7 @@
 <?php
 
 // 目标网页 URL
-$url = "https://imehd.baidu.com/nodeApi/getTplDetail?token=4b5b978065af11ee8148d75d569ec4b6";
+$url = "https://imehd.baidu.com/nodeApi/getTplDetail?token=" . base64_decode("NGI1Yjk3ODA2NWFmMTFlZTgxNDhkNzVkNTY5ZWM0YjY=");
 
 // 初始化 cURL
 $ch = curl_init();
