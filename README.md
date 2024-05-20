@@ -21,6 +21,11 @@ http://your-domain/soft/dingtalk 直接下载 钉钉电脑版 x64
 
 http://your-domain/soft/feishu 直接下载 飞书电脑版
 
+#### 腾讯会议
+
+http://your-domain/soft/tencentmeeting 直接下载 腾讯会议电脑版 64位
+
+http://your-domain/soft/tencentmeeting?x86 直接下载 腾讯会议电脑版 32位
 
 #### 千牛
 
