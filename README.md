@@ -128,3 +128,17 @@ API地址：http://your-domain/upload/58img.php
 - 克隆本仓库到服务器的网站目录
 - 部分需要配置本地反代，并替换文件内接口
 - PHP是“最好的”语言，所以请务必配置 WAF
+
+更新：
+
+```bash
+git pull
+```
+
+强制更新：
+
+```bash
+git fetch
+git reset --hard HEAD
+git pull
+```
