@@ -63,6 +63,7 @@ foreach ($data['assets'] as $asset) {
     if (empty($search) || strpos($asset['name'], $search) !== false) {
         if (empty($filter) || str_ends_with($asset['name'], $filter) !== false) {
             $matching_assets = $asset['browser_download_url'];
+            break;
         } else {
             $matching_assets = $asset['browser_download_url'];
         }
