@@ -1,17 +1,7 @@
 <?php
 
-// 定义分类数组
-$sorts = ['nature','art','architecture','geometry'];
-// no: acg
-
-// 随机选择一个分类
-$sort = $sorts[array_rand($sorts)];
-
-// 加载分类到请求头
-header('Sort: ' . $sort);
-
 // 目标网页 URL
-$url = "https://api.codelife.cc/wallpaper/random?lang=cn&category=$sort";
+$url = "https://api.codelife.cc/wallpaper/random?lang=cn";
 
 // 初始化 cURL
 $headers = array(
