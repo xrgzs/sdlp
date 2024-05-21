@@ -5,17 +5,11 @@ $url = "https://api.codelife.cc/wallpaper/random?lang=cn";
 
 // 初始化 cURL
 $headers = array(
-    'Accept: application/json, text/plain, */*',
-    'Accept-Encoding: gzip, deflate, br',
-    'Accept-Language: zh-CN,zh;q=0.9',
-    'Origin: chrome-extension://cccfmjnapcablhcaegmbencndfeclkpi',
-    'Mode: production',
-    'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.95 Safari/537.36',
-    'Version: 1.3.40'
+    'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.95 Safari/537.36'
 );
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_HTTPHEADER,$headers);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 // 发起请求
@@ -37,7 +31,13 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // 获取下载地址
-$downloadUrl = $jsonResponse['data'];
+// $downloadUrl = $jsonResponse['data'];
+
+// 使用parse_url解析URL
+$parsedUrl = parse_url($jsonResponse['data']);
+
+// 重新组合URL，排除查询部分
+$downloadUrl = $parsedUrl['scheme'] . '://' . $parsedUrl['host'] . $parsedUrl['path'];
 
 // 跳转到下载地址
 if (!empty($downloadUrl)) {
