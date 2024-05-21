@@ -36,7 +36,7 @@ $length = count($jsonResponse['data']);
 $random_index = mt_rand(0, $length - 1);
 
 // 获取随机下载地址
-$downloadUrl = 'https://s.cn.bing.net/' . $jsonResponse['data'][$random_index]['url'];
+$downloadUrl = 'https://s.cn.bing.net/' . $jsonResponse['data'][$random_index]['urlbase'] . '_UHD.jpg';
 if (!empty($downloadUrl)) {
     // 跳转到下载地址
     header("Location: $downloadUrl");

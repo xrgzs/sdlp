@@ -30,7 +30,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // 获取下载地址
-$downloadUrl = 'https://s.cn.bing.net/' . $jsonResponse['images'][0]['url'];
+$downloadUrl = 'https://s.cn.bing.net/' . $jsonResponse['images'][0]['urlbase'] . '_UHD.jpg';
 if (!empty($downloadUrl)) {
     // 跳转到下载地址
     header("Location: $downloadUrl");
