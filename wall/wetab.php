@@ -1,7 +1,16 @@
 <?php
 
+// 定义标签数组
+$tags = ['nature','architecture','travel'];
+
+// 随机选择一个标签
+$tag = $tags[array_rand($tags)];
+
+// 加载标签到请求头
+header('Sort: ' . $tag);
+
 // 目标网页 URL
-$url = "https://api.wetab.link/api/wallpaper/next?type=random";
+$url = "https://api.wetab.link/api/wallpaper/random?client=pc&pageSize=1&tag=$tag";
 
 // 初始化 cURL
 $headers = array(
@@ -41,7 +50,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // 获取下载地址
-$downloadUrl = $jsonResponse['data']['rawSrc'];
+$downloadUrl = $jsonResponse['data'][0]['rawSrc'];
 
 // 跳转到下载地址
 if (!empty($downloadUrl)) {
