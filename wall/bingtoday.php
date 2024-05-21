@@ -15,8 +15,8 @@ curl_setopt_array($curl, array(
 $response = curl_exec($curl);
 
 // 检查是否有错误
-if (curl_errno($ch)) {
-    echo 'cURL 请求出错：' . curl_error($ch);
+if (curl_errno($curl)) {
+    echo 'cURL 请求出错：' . curl_error($curl);
     exit;
 }
 
