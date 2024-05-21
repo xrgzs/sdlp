@@ -3,6 +3,7 @@
 $repo = $_GET['repo'];
 $tag = $_GET['tag'] ?? ''; // 如果未指定 tag，则则默认为空
 $search = $_GET['search'] ?? ''; // 如果未指定 search，则默认为空
+$filter = $_GET['filter'] ?? ''; // 如果未指定 filter，则默认为空
 $mirror_name = $_GET['mirror'] ?? ''; // 如果未指定 mirror，则默认为空
 
 // 检查参数
@@ -60,7 +61,11 @@ $data = json_decode($response, true);
 // 查找匹配的 release 文件
 foreach ($data['assets'] as $asset) {
     if (empty($search) || strpos($asset['name'], $search) !== false) {
-        $matching_assets = $asset['browser_download_url'];
+        if (empty($filter) || str_ends_with($asset['name'], $filter) !== false) {
+            $matching_assets = $asset['browser_download_url'];
+        } else {
+            $matching_assets = $asset['browser_download_url'];
+        }
     }
 }
 
