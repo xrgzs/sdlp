@@ -132,15 +132,19 @@ http://your-domain/qqsoft/?softid=351 即可直接跳转到下载链接
 
 ### 图片上传API
 
-可选部署，避免滥用请禁用
+可选部署，避免滥用请禁用 PHP 上传功能
 
 搭配 PicGO / PicList 插件 自定义 API 图床使用，参数如下：
 
-API地址：http://your-domain/upload/58img.php
+API地址：
 
-图片表单名称：image
+- 58img: http://your-domain/upload/58img.php
+- meituan: http://your-domain/upload/meituan.php
+- weixin: http://your-domain/upload/wx.php
 
-图片URL路径：data.url
+图片表单名称：`file`
+
+图片URL路径：`data.url`
 
 ## 部署
 

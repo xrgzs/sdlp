@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Upload Test Page</title>
+</head>
+<body>
+    <h1>Image Upload Test Page</h1>
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <label for="file">Choose Image:</label>
+        <input type="file" name="file" id="file">
+        
+        <p>Select Action:</p>
+        <input type="radio" id="action58img" name="action" value="58img.php">
+        <label for="action58img">58img</label><br>
+        <input type="radio" id="actionMeituan" name="action" value="mtkf.php">
+        <label for="actionMeituan">Meituan</label><br>
+        <input type="radio" id="actionWeixin" name="action" value="wx.php" checked>
+        <label for="actionWeixin">Weixin</label><br>
+
+        <input type="submit" value="Upload">
+    </form>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            // get selected action
+            const selectedAction = document.querySelector('input[name="action"]:checked').value;
+            // set form action
+            this.action = selectedAction;
+        });
+    </script>
+</body>
+</html>
