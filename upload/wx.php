@@ -4,10 +4,13 @@
 if (isset($_FILES['file'])) {
     // 文件信息
     $file = $_FILES['file'];
+    // 生成一个随机文件名
+    $random_string = bin2hex(random_bytes(8)); // 使用8个字节生成一个随机十六进制字符串
+    $random_filename = pathinfo($file['name'], PATHINFO_EXTENSION) ? $random_string . '.' . pathinfo($file['name'], PATHINFO_EXTENSION) : $random_string;
 
     // 构建POST请求数据
     $postData = array(
-        'media' => new CURLFile($file['tmp_name'], $file['type'], $file['name'])
+        'media' => new CURLFile($file['tmp_name'], $file['type'], $random_filename)
     );
 
     // 目标URL

@@ -10,10 +10,13 @@ if(isset($_FILES['file'])) {
         'Referer: https://h5.dianping.com/',
         'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0',
     );
+    // 生成一个随机文件名
+    $random_string = bin2hex(random_bytes(8)); // 使用8个字节生成一个随机十六进制字符串
+    $random_filename = pathinfo($file['name'], PATHINFO_EXTENSION) ? $random_string . '.' . pathinfo($file['name'], PATHINFO_EXTENSION) : $random_string;
     // 准备 POST 数据
     $post_data = array(
         'channel' => '4',
-        'file' => new CURLFile($file['tmp_name'], $file['type'], $file['name'])
+        'file' => new CURLFile($file['tmp_name'], $file['type'], $random_filename)
     );
 
     // 初始化 cURL
