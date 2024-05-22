@@ -141,6 +141,7 @@ API地址：
 - 58img: http://your-domain/upload/58img.php
 - meituan: http://your-domain/upload/meituan.php
 - weixin: http://your-domain/upload/wx.php
+- sohu: http://your-domain/upload/sohu.php
 
 图片表单名称：`file`
 

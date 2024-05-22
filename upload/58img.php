@@ -11,6 +11,23 @@ if(isset($_FILES['file'])) {
     // 获取文件信息
     $file = $_FILES['file'];
 
+    // 检查文件是否为空
+    if ($file['size'] == 0) {
+        $error = ['status' => 'error', 'code' => 400, 'message' => 'Uploaded file is empty.'];
+        header('Content-Type: application/json');
+        echo json_encode($error);
+        exit(); // 终止脚本执行
+    }
+
+    // 检查文件类型，只允许图片
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($file['type'], $allowedTypes)) {
+        $error = ['status' => 'error', 'code' => 400, 'message' => 'Invalid file type. Only JPG, PNG, WEBP and GIF are allowed.'];
+        header('Content-Type: application/json');
+        echo json_encode($error);
+        exit(); // 终止脚本执行
+    }
+    
     // 读取文件内容并转换为Base64编码
     $imageData = file_get_contents($file['tmp_name']);
     $base64EncodedData = base64_encode($imageData);
