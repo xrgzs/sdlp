@@ -21,9 +21,10 @@ if (!empty($tag) && $tag != 'latest') {
 $mirrors = [
     'ghproxy' => 'https://mirror.ghproxy.com/',
     'pig' => 'https://dl.ghpig.top/',
-    'ddlc' => 'https://dgh.ddlc.top/',
-    'slink' => 'https://dgh.ddlc.top/',
+    'ddlc' => 'https://gh.ddlc.top/',
+    'slink' => 'https://slink.ltd/',
     'con' => 'https://gh.con.sh/',
+    'isteed' => 'https://cors.isteed.cc/',
     // 添加其他 mirror 名称和对应的域名
 ];
 

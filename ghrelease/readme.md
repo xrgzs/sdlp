@@ -38,9 +38,10 @@
     | --------- | --------------------------- | ------------------------------------------------------------ |
     | `ghproxy` | https://mirror.ghproxy.com/ | [日本、韩国、德国等]（CDN 不固定） - 该公益加速源由 [ghproxy] 提供 提示：希望大家尽量多使用前面的美国节点（每次随机 负载均衡）， 避免流量都集中到亚洲公益节点，减少成本压力，公益才能更持久~ |
     | `pig`     | https://dl.ghpig.top/       | [美国 Cloudflare CDN] - 该公益加速源由 [feizhuqwq.com] 提供  |
-    | `ddlc`    | https://dgh.ddlc.top/       | [美国 Cloudflare CDN] - 该公益加速源由 [@mtr-static-official] 提供 |
+    | `ddlc`    | https://gh.ddlc.top/        | [美国 Cloudflare CDN] - 该公益加速源由 [@mtr-static-official] 提供 |
     | `slink`   | https://slink.ltd/          | [美国 Cloudflare CDN] - 该公益加速源由 [知了小站] 提供       |
     | `con`     | https://gh.con.sh/          | [美国 Cloudflare CDN] - 该公益加速源由 [佚名] 提供           |
+    | `isteed`  | https://cors.isteed.cc/     | [美国 Cloudflare CDN] - 该公益加速源由 [@Lufs\'s] 提供       |
 
 示例：
 
