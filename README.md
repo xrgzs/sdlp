@@ -130,23 +130,6 @@ http://your-domain/qqsoft/?softid=351 即可直接跳转到下载链接
 - 无密码：http://your-domain/lanzou/?url=https://www.lanzous.com/i6th9cd
 - 有密码：http://your-domain/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&pwd=1234
 
-### 图片上传API
-
-可选部署，避免滥用请禁用 PHP 上传功能
-
-搭配 PicGO / PicList 插件 自定义 API 图床使用，参数如下：
-
-API地址：
-
-- 58img: http://your-domain/upload/58img.php
-- meituan: http://your-domain/upload/meituan.php
-- weixin: http://your-domain/upload/wx.php
-- sohu: http://your-domain/upload/sohu.php
-
-图片表单名称：`file`
-
-图片URL路径：`data.url`
-
 ## 部署
 
 - HTTP Web Server
