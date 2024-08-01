@@ -3,17 +3,31 @@
 // 输入参数
 $param = $_GET['param'] ?? 'downloadUrl'; // 获取传入的 cmdid 参数
 
+// 获取下载地址
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://im.qq.com/pcqq/index.shtml');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HEADER, false);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+$response = curl_exec($ch);
+if (curl_errno($ch)) {
+    $url = 'https://cdn-go.cn/qq-web/im.qq.com_new/latest/rainbow/windowsDownloadUrl.js';
+} else {
+    // 使用正则表达式提取数据
+    preg_match('/var rainbowConfigUrl = "(https:\/\/qq-web\.cdn-go\.cn\/im\.qq\.com_new\/.*)";/', $response, $matches);
+    if (!empty($matches[1])) {
+        $url = $matches[1];
+    } else {
+        $url = 'https://cdn-go.cn/qq-web/im.qq.com_new/latest/rainbow/windowsDownloadUrl.js';
+    }
+}
+curl_close($ch);
 
-// 目标网页 URL
-$url = 'https://cdn-go.cn/qq-web/im.qq.com_new/latest/rainbow/windowsDownloadUrl.js';
-
-// 初始化 cURL
+// 请求接口
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-
-// 发起 GET 请求
 $response = curl_exec($ch);
 
 // 检查是否有错误
