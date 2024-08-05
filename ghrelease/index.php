@@ -35,7 +35,6 @@ $mirror = $mirrors[$mirror_name] ?? '';
 // 构建 GitHub API URL
 // 注意这里有请求限制，如需正式大量使用请使用缓存或本地代理
 $api_url = "https://api.github.com/repos/{$repo}/releases/{$tags}";
-// $api_url = "http://localhost:12345/repos/{$repo}/releases/{$tags}";
 
 // 初始化 cURL
 $ch = curl_init($api_url);
