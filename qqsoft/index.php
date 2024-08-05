@@ -8,6 +8,7 @@ $softid = isset($_GET['softid']) ? $_GET['softid'] : ''; // 获取传入的 req 
 //     die('输入参数不合法！');
 // }
 if (!is_numeric($softid) || strlen($softid) > 10) {
+    http_response_code(400);
     die('输入参数不合法！');
 }
 
@@ -34,6 +35,7 @@ $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
+    http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
 
@@ -43,6 +45,7 @@ curl_close($ch);
 // 解析 JSON 响应
 $jsonResponse = json_decode($response, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(500);
     die('JSON 解析失败: ' . json_last_error_msg());
 }
 
@@ -53,6 +56,7 @@ $downloadUrl = $jsonResponse['resp']['soft_list'][0]['download_url'];
 if (!empty($downloadUrl)) {
     header("Location: $downloadUrl");
 } else {
-    echo '未找到下载链接。';
+    http_response_code(404);
+    die('未找到下载链接。');
 }
 exit;

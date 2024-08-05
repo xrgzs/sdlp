@@ -15,6 +15,7 @@ $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
+    http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
 
@@ -24,6 +25,7 @@ curl_close($ch);
 // 解析 JSON 响应
 $jsonResponse = json_decode($response, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(500);
     die('JSON 解析失败: ' . json_last_error_msg());
 }
 
@@ -34,6 +36,7 @@ $downloadUrl = $jsonResponse['data']['downloadLink'];
 if (!empty($downloadUrl)) {
     header("Location: $downloadUrl");
 } else {
-    echo '未找到下载链接。';
+    http_response_code(404);
+    die('未找到下载链接。');
 }
 exit;

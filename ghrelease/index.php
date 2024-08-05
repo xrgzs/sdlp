@@ -8,6 +8,7 @@ $mirror_name = $_GET['mirror'] ?? ''; // 如果未指定 mirror，则默认为�
 
 // 检查参数
 if (empty($repo)) {
+    http_response_code(400);
     die('未定义必需参数 repo !');
 }
 if (!empty($tag) && $tag != 'latest') {
@@ -51,6 +52,7 @@ $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
+    http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
 
@@ -81,6 +83,7 @@ if (!empty($matching_assets)) {
     }
     header("Location: $url");
 } else {
+    http_response_code(404);
     die('未找到匹配的 release 文件。');
 }
 exit;

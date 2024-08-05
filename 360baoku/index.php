@@ -7,6 +7,7 @@ $appId = isset($_GET['appid']) ? $_GET['appid'] : '';
 
 // 参数校验
 if (!is_numeric($appId) || strlen($appId) > 10) {
+    http_response_code(400);
     die('输入参数不合法！');
 }
 
@@ -26,6 +27,7 @@ $html = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
+    http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
 
@@ -48,6 +50,7 @@ if ($button) {
     // 直接跳转
     header("Location: " . $downloadLink);
 } else {
+    http_response_code(404);
     die('未找到下载链接按钮。');
 }
 exit;

@@ -6,6 +6,7 @@ $arch = $_GET['arch'] ?? 'x64';
 
 // 检查参数
 if (!is_numeric($product_id) || !is_numeric($sku_id)) {
+    http_response_code(400);
     echo '输入参数不合法！';
     exit;
 }
@@ -27,7 +28,8 @@ $response = curl_exec($ch);
 
 // 检查是否有错误
 if (curl_errno($ch)) {
-    echo 'cURL 请求出错：' . curl_error($ch);
+    http_response_code(500);
+    die('cURL 请求出错：' . curl_error($ch));
     exit;
 }
 
@@ -57,7 +59,8 @@ foreach ($anchors as $anchor) {
 if (!empty($downloadlink)) {
     header("Location: $downloadlink");
 } else {
-    echo '未找到下载链接。';
+    http_response_code(404);
+    die('未找到下载链接。');
 }
 exit;
 ?>
