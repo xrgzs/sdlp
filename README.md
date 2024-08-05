@@ -162,5 +162,5 @@ git fetch && git reset --hard && git pull
 此处反代到 1panel-network 的 8002 端口
 
 ```bash
-sed -i 's/api.github.com/172.18.0.1:8002/g' ./ghrelease/index.php
+sed -i 's/https:\/\/api.github.com/http:\/\/172.18.0.1:8002/g' ./ghrelease/index.php
 ```
