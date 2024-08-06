@@ -23,7 +23,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // 遍历 data 数组，获取下载地址
-foreach ($jsonData['data'] as $item) {
+foreach ($jsonResponse['data'] as $item) {
     if ($item['clientType'] === 'WIN') {
         $downloadUrl = $item['url'];
         break;
