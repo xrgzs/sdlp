@@ -108,6 +108,14 @@ http://your-domain/qqsoft/?softid=351 即可直接跳转到下载链接
 
 http://your-domain/qaxsoft/?softid=103352 即可直接跳转到下载链接
 
+### 自动跳转HPM模块下载链接
+
+参数：`name`
+
+根据给定名称作为前缀搜索，优先匹配最新上传的版本
+
+http://your-domain/hpm/?name=ToDesk完整版 即可直接跳转到 ToDesk完整版 最新上传的下载链接
+
 ### 自动跳转Windows ISO官方下载地址
 
 **无需此接口不建议部署**，直接删掉 `msdl` 目录
