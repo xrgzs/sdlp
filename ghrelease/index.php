@@ -26,6 +26,7 @@ $mirrors = [
     'slink' => 'https://slink.ltd/',
     'con' => 'https://gh.con.sh/',
     'isteed' => 'https://cors.isteed.cc/',
+    'moeyy' => 'https://github.moeyy.xyz/',
     // 添加其他 mirror 名称和对应的域名
 ];
 
