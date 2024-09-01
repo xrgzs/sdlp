@@ -73,21 +73,21 @@ http://your-domain/soft/baidupinyin 直接下载 百度拼音输入法
 
 参数：`x64` 64位版本
 
-http://your-domain/soft/?name=SUNLOGIN_X_WINDOWS 直接下载 向日葵个人版 32位
+http://your-domain/soft/sunlogin?name=SUNLOGIN_X_WINDOWS 直接下载 向日葵个人版 32位
 
-http://your-domain/soft/?name=SUNLOGIN_X_WINDOWS&x64=1 直接下载 向日葵个人版 64位
+http://your-domain/soft/sunlogin?name=SUNLOGIN_X_WINDOWS&x64=1 直接下载 向日葵个人版 64位
 
-http://your-domain/soft/?name=SUNLOGIN_WINDOWS 直接下载 向日葵企业版 控制端 32位
+http://your-domain/soft/sunlogin?name=SUNLOGIN_WINDOWS 直接下载 向日葵企业版 控制端 32位
 
-http://your-domain/soft/?name=SUNLOGIN_WINDOWS&x64=1 直接下载 向日葵企业版 控制端 64位
+http://your-domain/soft/sunlogin?name=SUNLOGIN_WINDOWS&x64=1 直接下载 向日葵企业版 控制端 64位
 
-http://your-domain/soft/?name=SLRC_WINDOWS_ENT 直接下载 向日葵企业版 客户端 32位
+http://your-domain/soft/sunlogin?name=SLRC_WINDOWS_ENT 直接下载 向日葵企业版 客户端 32位
 
-http://your-domain/soft/?name=SLRC_WINDOWS_ENT&x64=1 直接下载 向日葵企业版 客户端 64位
+http://your-domain/soft/sunlogin?name=SLRC_WINDOWS_ENT&x64=1 直接下载 向日葵企业版 客户端 64位
 
-http://your-domain/soft/?name=SL_WINDOWS_LITE 直接下载 向日葵SOS版 32位
+http://your-domain/soft/sunlogin?name=SL_WINDOWS_LITE 直接下载 向日葵SOS版 32位
 
-http://your-domain/soft/?name=SL_WINDOWS_LITE&x64=1 直接下载 向日葵SOS版 64位
+http://your-domain/soft/sunlogin?name=SL_WINDOWS_LITE&x64=1 直接下载 向日葵SOS版 64位
 
 #### RayLink
 
