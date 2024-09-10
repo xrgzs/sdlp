@@ -30,7 +30,9 @@ http://your-domain/soft/tencentmeeting?x86 直接下载 腾讯会议电脑版 32
 #### 千牛
 
 http://your-domain/soft/qianniu 直接下载 千牛Windows x64版
+
 http://your-domain/soft/qianniu?param=x64 直接下载 千牛Windows x64版
+
 http://your-domain/soft/qianniu?param=x32 直接下载 千牛Windows x32版
 
 #### 火绒安全软件电脑版
@@ -173,13 +175,39 @@ http://your-domain/hpm/?name=ToDesk完整版 即可直接跳转到 ToDesk完整�
 ## 部署
 
 - HTTP Web Server
+  - 此处使用 1Panel 环境
+
 - PHP 建议使用8.1+
   - 启用 `CURL`扩展
 - 克隆本仓库到服务器的网站目录
 - 部分需要配置本地反代，并替换文件内接口
 - PHP是“最好的”语言，所以请务必配置 WAF
 
-更新：
+## 安装
+
+创建运行环境：PHP 8，带上扩展 `curl`
+
+创建网站：运行环境 PHP 8，主域名：`your-domain`
+
+进入网站目录，打开终端
+
+```bash
+cd /opt/1panel/apps/openresty/openresty/www/sites/your-domain/index
+```
+
+克隆此仓库：
+
+```bash
+git clone https://mirror.ghproxy.com/https://github.com/xrgzs/sdlp.git
+```
+
+配置 NGINX：运行目录 `/sdlp`
+
+```nginx
+root /www/sites/your-domain/index/sdlp; 
+```
+
+## 更新
 
 ```bash
 git pull
@@ -191,10 +219,44 @@ git pull
 git fetch && git reset --hard && git pull
 ```
 
-替换 ghrelease 反代内容：
+## 配置
 
-此处反代 api.github.com 到 1panel-network 的 8002 端口
+### 反代 GitHub API
+
+为了避免请求超过限制，强烈推荐您自行反代 GitHub API，并设置您自己的 GitHub Token
+
+创建网站：反向代理，主域名：`api.gh.local:8002`（虚构），代理地址：`https://api.github.com`
+
+注意此处的8002端口并未建站，使用机器的任意IP、任意域名访问8002端口均为GitHub API反代，建议配置机器防火墙，不要让外部访问，如果不方便配置，那就填写 1panel-network 的地址：`172.18.0.1:8002`, 使用 IP + 端口 访问避免设置 PHP 容器的 hosts
+
+替换反向代理内容：Authorization后面的内容为您的GitHub Token，此处增加了1h的缓存
+
+```nginx
+location ^~ / {
+    proxy_pass https://api.github.com; 
+    proxy_set_header Host api.github.com; 
+    proxy_set_header X-Real-IP $remote_addr; 
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
+    proxy_set_header REMOTE-HOST $remote_addr; 
+    proxy_set_header Upgrade $http_upgrade; 
+    proxy_set_header Connection "upgrade"; 
+    proxy_set_header X-Forwarded-Proto $scheme; 
+    proxy_set_header Authorization "***********************************************";
+    proxy_http_version 1.1; 
+    add_header X-Cache $upstream_cache_status; 
+    proxy_ignore_headers Set-Cookie Cache-Control expires; 
+    proxy_cache proxy_cache_panel; 
+    proxy_cache_key $host$uri$is_args$args; 
+    proxy_cache_valid 200 1h; 
+}
+```
+
+替换 ghrelease 反代内容：此处反代 api.github.com 到 1panel-network 的 8002 端口
 
 ```bash
+cd /opt/1panel/apps/openresty/openresty/www/sites/your-domain/index/sdlp
 sed -i 's/https:\/\/api.github.com/http:\/\/172.18.0.1:8002/g' ./ghrelease/index.php
 ```
+
+每次更新后都需要执行上面的内容
+
