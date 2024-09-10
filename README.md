@@ -210,12 +210,14 @@ root /www/sites/your-domain/index/sdlp;
 ## 更新
 
 ```bash
+cd /opt/1panel/apps/openresty/openresty/www/sites/your-domain/index/sdlp
 git pull
 ```
 
 强制更新：
 
 ```bash
+cd /opt/1panel/apps/openresty/openresty/www/sites/your-domain/index/sdlp
 git fetch && git reset --hard && git pull
 ```
 
