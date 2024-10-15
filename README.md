@@ -101,6 +101,11 @@ http://your-domain/soft/raylink?lite 直接下载 RayLink Lite版
 
 http://your-domain/soft/asklink 直接下载 连连控
 
+#### 天翼网盘
+
+http://your-domain/soft/ecloud 直接下载 天翼网盘
+
+
 ### 自动跳转360宝库软件下载链接
 
 参数：`appid`
