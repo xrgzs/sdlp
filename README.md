@@ -122,7 +122,7 @@ http://your-domain/lestore/?softid=13407 即可直接跳转到下载链接
 
 参数：`softid`
 
-如软件下载页面 https://pc.qq.com/detail/11/detail_351.html，`351`即为`softid`
+如软件下载页面 https://pc.qq.com/detail/11/detail_351.html ，`351`即为`softid`
 
 http://your-domain/qqsoft/?softid=351 即可直接跳转到下载链接
 
@@ -146,9 +146,14 @@ http://your-domain/hpm/?name=ToDesk完整版 即可直接跳转到 ToDesk完整�
 
  - `name`：软件名称
  - `bucket`：存储库名称，默认为 `okibcn/ScoopMaster`
+ - `branch`：存储库名称，默认为 `master`
  - `arch`：架构，`64bit`、`32bit`、`arm64` 等，默认为 `64bit`
 
+软件搜索：https://scoop.sh/
+
 http://your-domain/scoop/?name=aria2 即可直接跳转到下载链接，并且使用加速过的链接
+
+http://your-domain/scoop/?name=ecloud&bucket=echoiron/echo-scoop&branch=main 指定 bucket 和 main 分支
 
 ### 自动跳转Windows ISO官方下载地址
 

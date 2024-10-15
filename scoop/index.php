@@ -2,6 +2,7 @@
 // 输入参数
 $name = isset($_GET['name']) ? $_GET['name'] : ''; // 获取传入的 name 参数
 $bucket = isset($_GET['bucket']) ? $_GET['bucket'] : 'okibcn/ScoopMaster'; // 获取传入的 bucket 参数
+$bucket = isset($_GET['branch']) ? $_GET['branch'] : 'master'; // 获取传入的 branch 参数
 $arch = isset($_GET['arch']) ? $_GET['arch'] : '64bit'; // 获取传入的 arch 参数
 
 // 检查参数
@@ -13,6 +14,10 @@ if (!is_string($bucket) || strlen($bucket) > 30) {
     http_response_code(400);
     die('输入 bucket 参数不合法！');
 }
+if (!is_string($branch) || strlen($branch) > 10) {
+    http_response_code(400);
+    die('输入 branch 参数不合法！');
+}
 if (!is_string($arch) || strlen($arch) > 5) {
     http_response_code(400);
     die('输入 arch 参数不合法！');
@@ -21,14 +26,15 @@ if (!is_string($arch) || strlen($arch) > 5) {
 // 进一步过滤和转义输入，防止注入
 $name = filter_var($name, FILTER_SANITIZE_STRING);
 $bucket = filter_var($bucket, FILTER_SANITIZE_STRING);
+$branch = filter_var($branch, FILTER_SANITIZE_STRING);
 $arch = filter_var($arch, FILTER_SANITIZE_STRING);
 
 // 请求数据
-$ghurl = "https://ghp.ci/https://raw.githubusercontent.com/". $bucket . "/refs/heads/master/bucket/" . $name . ".json";
+$ghurl = "https://raw.githubusercontent.com/$bucket/refs/heads/$branch/bucket/$name.json";
 header("Scoop-Url: $ghurl");
 $curl = curl_init();
 curl_setopt_array($curl, array(
-   CURLOPT_URL => $ghurl,
+   CURLOPT_URL => 'https://ghp.ci/' . $ghurl,
    CURLOPT_RETURNTRANSFER => true,
    CURLOPT_ENCODING => '',
    CURLOPT_MAXREDIRS => 10,
