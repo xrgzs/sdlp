@@ -140,6 +140,16 @@ http://your-domain/qaxsoft/?softid=103352 即可直接跳转到下载链接
 
 http://your-domain/hpm/?name=ToDesk完整版 即可直接跳转到 ToDesk完整版 最新上传的下载链接
 
+### 自动跳转Scoop软件下载链接
+
+参数：
+
+ - `name`：软件名称
+ - `bucket`：存储库名称，默认为 `okibcn/ScoopMaster`
+ - `arch`：架构，`64bit`、`32bit`、`arm64` 等，默认为 `64bit`
+
+http://your-domain/scoop/?name=aria2 即可直接跳转到下载链接，并且使用加速过的链接
+
 ### 自动跳转Windows ISO官方下载地址
 
 **无需此接口不建议部署**，直接删掉 `msdl` 目录
