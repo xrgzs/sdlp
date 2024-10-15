@@ -2,7 +2,7 @@
 // 输入参数
 $name = isset($_GET['name']) ? $_GET['name'] : ''; // 获取传入的 name 参数
 $bucket = isset($_GET['bucket']) ? $_GET['bucket'] : 'okibcn/ScoopMaster'; // 获取传入的 bucket 参数
-$bucket = isset($_GET['branch']) ? $_GET['branch'] : 'master'; // 获取传入的 branch 参数
+$branch = isset($_GET['branch']) ? $_GET['branch'] : 'master'; // 获取传入的 branch 参数
 $arch = isset($_GET['arch']) ? $_GET['arch'] : '64bit'; // 获取传入的 arch 参数
 
 // 检查参数
