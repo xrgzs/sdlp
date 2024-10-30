@@ -39,8 +39,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // 获取下载地址
-$downloadUrl = $jsonResponse['downloadurl'];
-
+$downloadUrl = str_replace('dw.oray.com', 'down.oray.com', $jsonResponse['downloadurl']);
 // 跳转到下载地址
 if (!empty($downloadUrl)) {
     header("Location: $downloadUrl");
