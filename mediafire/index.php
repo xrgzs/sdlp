@@ -4,14 +4,14 @@ if (isset($_GET['url'])) {
     $inputurl = filter_var($_GET['url'], FILTER_VALIDATE_URL); // 验证URL有效性
 
     if ($inputurl === false) {
-        http_response_code(400);
+        http_response_code(500);
         echo "Error: 无效的URL";
         exit;
     }
 
   $pattern = '/^https?:\/\/www\.mediafire\.com\/(file|view|download)\/(\w+)\/(.*)/i';
     if (!preg_match($pattern, $inputurl, $matches)) {
-        http_response_code(400);
+        http_response_code(500);
         echo "Error: 无效的MediaFire链接";
         exit;
     }
@@ -30,7 +30,7 @@ if (isset($_GET['url'])) {
     curl_close($ch);
 
     if ($html === false) {
-        http_response_code(400);
+        http_response_code(500);
         echo "Error: 无法获取页面内容";
         exit;
     }
@@ -49,7 +49,7 @@ if (isset($_GET['url'])) {
         exit;
     }
 } else {
-    http_response_code(400);
+    http_response_code(500);
     echo "Error: 未提供URL";
     exit;
 }
