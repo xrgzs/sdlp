@@ -150,7 +150,7 @@ http://your-domain/hpm/?name=ToDesk完整版 即可直接跳转到 ToDesk完整�
 参数：
 
  - `name`：软件名称
- - `bucket`：存储库名称，默认为 `okibcn/ScoopMaster`
+ - `bucket`：存储库名称，默认为 `DoveBoy/ScoopMaster`
  - `branch`：存储库名称，默认为 `master`
  - `arch`：架构，`64bit`、`32bit`、`arm64` 等，默认为 `64bit`
 
@@ -158,7 +158,7 @@ http://your-domain/hpm/?name=ToDesk完整版 即可直接跳转到 ToDesk完整�
 
 http://your-domain/scoop/?name=aria2 即可直接跳转到下载链接，并且使用加速过的链接
 
-http://your-domain/scoop/?name=ecloud&bucket=echoiron/echo-scoop&branch=main 指定 bucket 和 main 分支
+http://your-domain/scoop/?name=ecloud&bucket=xrgzs/sdoog&branch=master 指定 bucket 和 master 分支
 
 ### 自动跳转Windows ISO官方下载地址
 
@@ -218,7 +218,7 @@ cd /opt/1panel/apps/openresty/openresty/www/sites/your-domain/index
 克隆此仓库：
 
 ```bash
-git clone https://mirror.ghproxy.com/https://github.com/xrgzs/sdlp.git
+git clone https://ghp.ci/https://github.com/xrgzs/sdlp.git
 ```
 
 配置 NGINX：运行目录 `/sdlp`

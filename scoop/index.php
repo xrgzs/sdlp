@@ -1,12 +1,12 @@
 <?php
 // 输入参数
 $name = isset($_GET['name']) ? $_GET['name'] : ''; // 获取传入的 name 参数
-$bucket = isset($_GET['bucket']) ? $_GET['bucket'] : 'okibcn/ScoopMaster'; // 获取传入的 bucket 参数
+$bucket = isset($_GET['bucket']) ? $_GET['bucket'] : 'DoveBoy/ScoopMaster'; // 获取传入的 bucket 参数
 $branch = isset($_GET['branch']) ? $_GET['branch'] : 'master'; // 获取传入的 branch 参数
 $arch = isset($_GET['arch']) ? $_GET['arch'] : '64bit'; // 获取传入的 arch 参数
 
 // 检查参数
-if (!is_string($name) || $name === "" || strlen($name) > 30) {
+if (!is_string($name) || $name === "" || strlen($name) > 50) {
     http_response_code(400);
     die('输入 name 参数不合法！');
 }
@@ -37,8 +37,9 @@ curl_setopt_array($curl, array(
    CURLOPT_URL => 'https://ghp.ci/' . $ghurl,
    CURLOPT_RETURNTRANSFER => true,
    CURLOPT_ENCODING => '',
-   CURLOPT_MAXREDIRS => 10,
-   CURLOPT_TIMEOUT => 0,
+   CURLOPT_MAXREDIRS => 5,
+   CURLOPT_TIMEOUT => 10,
+   CURLOPT_MAXFILESIZE => 1 * 1024 * 1024, // 设置最大文件大小为1MB
    CURLOPT_FOLLOWLOCATION => true,
    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
    CURLOPT_CUSTOMREQUEST => 'GET',

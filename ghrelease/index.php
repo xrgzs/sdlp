@@ -20,7 +20,7 @@ if (!empty($tag) && $tag != 'latest') {
 
 // 预先定义 mirror 数组
 $mirrors = [
-    'ghproxy' => 'https://mirror.ghproxy.com/',
+    'ghproxy' => 'https://ghp.ci/',
     'pig' => 'https://dl.ghpig.top/',
     'ddlc' => 'https://gh.ddlc.top/',
     'slink' => 'https://slink.ltd/',
