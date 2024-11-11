@@ -112,6 +112,8 @@ if($downUrl2 == "") {
 } else {
 	$downUrl = $downUrl2;
 }
+//避免参数泄露IP
+$downUrl = preg_replace('/&pid=(\d-?)+/', '', $downUrl);
 //判断是否是直接下载
 if ($type != "down") {
 	die(
