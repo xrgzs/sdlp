@@ -1,7 +1,7 @@
 <?php
 // 获取传入的参数
 $repo = $_GET['repo'];
-$tag = $_GET['tag'] ?? ''; // 如果未指定 tag，则则默认为空
+$tag = $_GET['tag'] ?? ''; // 如果未指定 tag，则默认为空
 $search = $_GET['search'] ?? ''; // 如果未指定 search，则默认为空
 $filter = $_GET['filter'] ?? ''; // 如果未指定 filter，则默认为空
 $mirror_name = $_GET['mirror'] ?? ''; // 如果未指定 mirror，则默认为空
@@ -18,21 +18,11 @@ if (!empty($tag) && $tag != 'latest') {
     $tags = 'latest';
 }
 
-// 预先定义 mirror 数组
-$mirrors = [
-    'ghproxy' => 'https://ghp.ci/',
-    'pig' => 'https://dl.ghpig.top/',
-    'ddlc' => 'https://gh.ddlc.top/',
-    'slink' => 'https://slink.ltd/',
-    'con' => 'https://gh.con.sh/',
-    'isteed' => 'https://cors.isteed.cc/',
-    'moeyy' => 'https://github.moeyy.cn/',
-    'auto' => 'https://gh.xrgzs.top/',
-    // 添加其他 mirror 名称和对应的域名
-];
-
 // 根据 mirror 名称获取对应的域名
-$mirror = $mirrors[$mirror_name] ?? '';
+$mirror = '';
+if (!empty($mirror_name)) {
+    $mirror = 'https://gh.xrgzs.top/';
+}
 
 // 构建 GitHub API URL
 // 注意这里有请求限制，如需正式大量使用请使用缓存或本地代理

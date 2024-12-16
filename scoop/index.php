@@ -34,7 +34,7 @@ $ghurl = "https://raw.githubusercontent.com/$bucket/refs/heads/$branch/bucket/$n
 header("Scoop-Url: $ghurl");
 $curl = curl_init();
 curl_setopt_array($curl, array(
-   CURLOPT_URL => 'https://ghp.ci/' . $ghurl,
+   CURLOPT_URL => 'https://gh.xrgzs.top/' . $ghurl,
    CURLOPT_RETURNTRANSFER => true,
    CURLOPT_ENCODING => '',
    CURLOPT_MAXREDIRS => 5,
@@ -70,7 +70,7 @@ $downloadUrl = explode('#/', $downloadUrl)[0];
 
 // 检查是否以"https://github.com"开头，并添加前缀
 if (strpos($downloadUrl, 'https://github.com/') === 0) {
-    $downloadUrl = 'https://ghp.ci/' . $downloadUrl;
+    $downloadUrl = 'https://gh.xrgzs.top/' . $downloadUrl;
 }
 
 // 跳转到下载地址
