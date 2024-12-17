@@ -9,7 +9,7 @@
   <script src="https://s4.zstatic.net/npm/marked/marked.min.js"></script>
   <script src="https://s4.zstatic.net/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://s4.zstatic.net/ajax/libs/highlight.js/11.9.0/languages/nginx.min.js"></script>
-  <title>软件下载链接解析器</title>
+  <title>SDLP</title>
   <style>
     :root {
       --body-bg: #fff;
@@ -173,10 +173,22 @@
 <body>
   <div class="container">
     <div style="padding: 2% 5%;">
-      <div id="content"></div>
+      <div id="content">
+        <div align="center">
+          <img src="https://github.com/xrgzs/sdlp/assets/26499123/1b2af287-6ee9-4795-9404-83b9687d7cf4"
+            alt="XRSOFT_LOGO_ROUND_1024" width="20%">
+          <h1>SDLP</h1>
+          <p>Xiaoran Studio's APIs</p>
+          <button onclick="loadMore()"
+            style="background-color: var(--theme-color); color: var(--body-bg); border: none; border-radius: 5px; padding: 10px 20px; cursor: pointer;">
+            加载更多
+          </button>
+          <p></p>
+        </div>
+      </div>
       <script>
-        document.addEventListener('DOMContentLoaded', function () {
-          fetch('README.md')
+        function loadMore() {
+          fetch('readme.md')
             .then(response => response.text())
             .then(text => {
               const html = marked.parse(text.replace(/your-domain/g, window.location.host));
@@ -186,7 +198,7 @@
             .catch(error => {
               console.error('Error fetching or parsing data:', error);
             });
-        });
+        };
       </script>
     </div>
   </div>
