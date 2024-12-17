@@ -2,8 +2,8 @@
 /**
  * @package Lanzou
  * @author Filmy,hanximeng
- * @version 1.2.96
- * @Date 2024-01-12
+ * @version 1.2.98
+ * @Date 2024-12-17
  * @link https://hanximeng.com
  */
 header('Access-Control-Allow-Origin:*');
@@ -69,9 +69,11 @@ if(strstr($softInfo, "function down_p(){") != false) {
 	$post_data = array(
 			"action" => 'downprocess',
 			"sign" => $segment[1][0],
-			"p" => $pwd
+			"p" => $pwd,
+			"kd" => 1
 		);
-	$softInfo = MloocCurlPost($post_data, "https://www.lanzoup.com/ajaxm.php", $url);
+	preg_match_all("/ajaxm\.php\?file=(\d+)/", $softInfo, $ajaxm);
+	$softInfo = MloocCurlPost($post_data, "https://www.lanzoup.com/ajaxm.php?file=" . $ajaxm[1][0], $url);
 	$softName[1] = json_decode($softInfo,JSON_UNESCAPED_UNICODE)['inf'];
 } else {
 	//不带密码的链接处理
@@ -83,12 +85,14 @@ if(strstr($softInfo, "function down_p(){") != false) {
 	$ifurl = "https://www.lanzoup.com/" . $link[1];
 	$softInfo = MloocCurlGet($ifurl);
 	preg_match_all("~'sign':'(.*?)'~", $softInfo, $segment);
+	preg_match_all("/ajaxm\.php\?file=(\d+)/", $softInfo, $ajaxm);
 	$post_data = array(
 			"action" => 'downprocess',
 			"signs"=>"?ctdf",
 			"sign" => $segment[1][0],
+			"kd" => 1
 		);
-	$softInfo = MloocCurlPost($post_data, "https://www.lanzoup.com/ajaxm.php", $ifurl);
+	$softInfo = MloocCurlPost($post_data, "https://www.lanzoup.com/ajaxm.php?file=" . $ajaxm[1][0], $ifurl);
 }
 //其他情况下的信息输出
 $softInfo = json_decode($softInfo, true);
@@ -112,8 +116,8 @@ if($downUrl2 == "") {
 } else {
 	$downUrl = $downUrl2;
 }
-//避免参数泄露IP
-$downUrl = preg_replace('/&pid=(\d-?)+/', '', $downUrl);
+//2024-12-03 修复pid参数可能导致的服务器ip地址泄露
+$downUrl=preg_replace('/pid=(.*?.)&/', '', $downUrl);
 //判断是否是直接下载
 if ($type != "down") {
 	die(
