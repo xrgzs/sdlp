@@ -1,6 +1,6 @@
 <?php
 // 定义常量或配置项
-define('BASE_URL', 'http://baoku.360.cn/soft/show/appid/');
+define('BASE_URL', 'https://soft-api.safe.360.cn/main/v1/soft/info?softid=');
 
 // 输入参数
 $appId = isset($_GET['appid']) ? $_GET['appid'] : '';
@@ -17,40 +17,32 @@ $appId = filter_var($appId, FILTER_SANITIZE_NUMBER_INT);
 // 目标网页 URL
 $url = BASE_URL . $appId;
 
-// 初始化 cURL
+// 执行 cURL 请求
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-// 执行 cURL 请求
-$html = curl_exec($ch);
-
-// 检查是否有错误
+$response = curl_exec($ch);
 if (curl_errno($ch)) {
     http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
-
-// 关闭 cURL
 curl_close($ch);
 
-// 使用 DOM 解析 HTML
-$dom = new DOMDocument;
-libxml_use_internal_errors(true);
-$dom->loadHTML($html);
-libxml_clear_errors();
+// 解析 JSON 响应
+$jsonResponse = json_decode($response, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(500);
+    die('JSON 解析失败: ' . json_last_error_msg());
+}
 
-// 查找按钮元素
-$xpath = new DOMXPath($dom);
-$button = $xpath->query("//a[contains(@class, 'normal-down')]")->item(0);
+// 获取下载地址
+$downloadUrl = $jsonResponse['data']['soft_download'];
 
-if ($button) {
-    // 提取 href 属性
-    $downloadLink = $button->getAttribute('href');
-    // 直接跳转
-    header("Location: " . $downloadLink);
+// 跳转到下载地址
+if (!empty($downloadUrl)) {
+    header("Location: $downloadUrl");
 } else {
     http_response_code(404);
-    die('未找到下载链接按钮。');
+    die('未找到下载链接。');
 }
 exit;
