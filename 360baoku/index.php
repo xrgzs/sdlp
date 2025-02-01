@@ -38,6 +38,9 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 // 获取下载地址
 $downloadUrl = $jsonResponse['data']['soft_download'];
 
+// 替换下载地址
+$downloadUrl = str_replace('cds.360tpcdn.com', 'cdn-download.soft.360.cn', $downloadUrl);
+
 // 跳转到下载地址
 if (!empty($downloadUrl)) {
     header("Location: $downloadUrl");
