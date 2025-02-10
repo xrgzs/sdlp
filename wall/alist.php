@@ -1,9 +1,9 @@
 <?php
 
 // 初始化 cURL
-$curl = curl_init();
+$ch = curl_init();
 
-curl_setopt_array($curl, array(
+curl_setopt_array($ch, array(
    CURLOPT_URL => 'https://alist.xrgzs.top/api/fs/list',
    CURLOPT_RETURNTRANSFER => true,
    CURLOPT_CUSTOMREQUEST => 'POST',
@@ -21,16 +21,16 @@ curl_setopt_array($curl, array(
 ));
 
 // 发起请求
-$response = curl_exec($curl);
+$response = curl_exec($ch);
 
 // 检查是否有错误
-if (curl_errno($curl)) {
+if (curl_errno($ch)) {
     http_response_code(500);
-    die('cURL 请求出错：' . curl_error($curl));
+    die('cURL 请求出错：' . curl_error($ch));
 }
 
 // 关闭 cURL
-curl_close($curl);
+curl_close($ch);
 
 // 解析 JSON 响应
 $jsonResponse = json_decode($response, true);

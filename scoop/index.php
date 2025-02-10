@@ -32,11 +32,10 @@ $arch = filter_var($arch, FILTER_SANITIZE_STRING);
 // 请求数据
 $ghurl = "https://raw.githubusercontent.com/$bucket/refs/heads/$branch/bucket/$name.json";
 header("Scoop-Url: $ghurl");
-$curl = curl_init();
-curl_setopt_array($curl, array(
+$ch = curl_init();
+curl_setopt_array($ch, array(
    CURLOPT_URL => 'https://gh.xrgzs.top/' . $ghurl,
    CURLOPT_RETURNTRANSFER => true,
-   CURLOPT_ENCODING => '',
    CURLOPT_MAXREDIRS => 5,
    CURLOPT_TIMEOUT => 10,
    CURLOPT_MAXFILESIZE => 1 * 1024 * 1024, // 设置最大文件大小为1MB
@@ -48,12 +47,12 @@ curl_setopt_array($curl, array(
    ),
 ));
 
-$response = curl_exec($curl);
-if (curl_errno($curl)) {
+$response = curl_exec($ch);
+if (curl_errno($ch)) {
     http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
-curl_close($curl);
+curl_close($ch);
 
 // 解析 JSON 响应
 $jsonResponse = json_decode($response, true);
