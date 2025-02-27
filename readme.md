@@ -142,8 +142,8 @@
 参数：
 
 - `name`：软件名称
-- `bucket`：存储库名称，默认为 `DoveBoy/ScoopMaster`
-- `branch`：存储库名称，默认为 `master`
+- `bucket`：存储库名称，默认为 `ScoopInstaller/Main`
+- `branch`：存储库分支，默认为 `master`
 - `arch`：架构，`64bit`、`32bit`、`arm64` 等，默认为 `64bit`
 
 软件搜索：<https://scoop.sh/>
