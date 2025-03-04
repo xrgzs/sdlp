@@ -3,7 +3,7 @@
 $servers = array(
     'wetab.php',
     'itab.php',
-    '360cse.php'
+    'bingrand.php'
 );
 
 // 随机选择一个服务器

@@ -213,6 +213,42 @@ API 将直接跳转到匹配的 release 文件链接，或者提示未找到匹�
 - 无密码：<http://your-domain/lanzou/?url=https://www.lanzous.com/i6th9cd>
 - 有密码：<http://your-domain/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&pwd=1234>
 
+### 随机图API
+
+直接跳转到对应图片
+
+- 自动切换接口（无二次元）
+
+  ![](http://your-domain/wall/)
+
+- 对接 Alist 的精选图库（OneDrive 缩略图转码服务）（无二次元）
+
+  ![](http://your-domain/wall/alist.php)
+
+- 必应今日图片
+
+  ![](http://your-domain/wall/bingtoday.php)
+
+- 必应随机图片
+
+  ![](http://your-domain/wall/bingrand.php)
+
+- iTab 标签页（无二次元）
+
+  ![](http://your-domain/wall/itab.php)
+
+- iTab 标签页随机
+
+  ![](http://your-domain/wall/itabrand.php)
+
+- WeTab 标签页（无二次元）
+
+  ![](http://your-domain/wall/wetab.php)
+
+- WeTab 标签页随机
+
+  ![](http://your-domain/wall/wetabrand.php)
+
 ## 部署
 
 - HTTP Web Server
@@ -226,7 +262,7 @@ API 将直接跳转到匹配的 release 文件链接，或者提示未找到匹�
 
 ## 安装
 
-创建运行环境：PHP 8，带上扩展 `curl`
+创建运行环境：PHP 8，带上扩展 `curl`、`apcu`（可选，不安装无缓存）
 
 创建网站：运行环境 PHP 8，主域名：`your-domain`
 

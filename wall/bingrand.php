@@ -1,4 +1,17 @@
 <?php
+// APCU 缓存配置
+$cacheKey = 'bing_wallpaper_random'; // 唯一缓存键名
+$cacheTTL = 43200; // 缓存有效期 12 小时（秒）
+
+// 尝试从 APCu 读取缓存
+if (function_exists('apcu_enabled') && apcu_enabled()) {
+    header("X-App-Cache: ". (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    $response = apcu_fetch($cacheKey);
+    if ($response !== false) {
+        // 缓存命中，跳过 API 请求
+        goto parse_json; // 直接进入解析阶段
+    }
+}
 
 // 初始化 cURL
 $ch = curl_init();
@@ -23,6 +36,12 @@ if (curl_errno($ch)) {
 // 关闭 cURL
 curl_close($ch);
 
+// 将新数据存入 APCu 缓存
+if (function_exists('apcu_store') && $response !== false) {
+    apcu_store($cacheKey, $response, $cacheTTL); // 存储时自动覆盖旧缓存
+}
+
+parse_json:
 // 解析 JSON 响应
 $jsonResponse = json_decode($response, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
@@ -37,7 +56,7 @@ $length = count($jsonResponse['data']);
 $random_index = mt_rand(0, $length - 1);
 
 // 获取随机下载地址
-$downloadUrl = 'https://s.cn.bing.net/' . $jsonResponse['data'][$random_index]['urlbase'] . '_UHD.jpg';
+$downloadUrl = 'https://s.cn.bing.net' . $jsonResponse['data'][$random_index]['urlbase'] . '_UHD.jpg';
 if (!empty($downloadUrl)) {
     // 跳转到下载地址
     header("Location: $downloadUrl");
