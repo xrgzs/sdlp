@@ -80,6 +80,7 @@ exit;
  */
 function sendErrorResponse(string $message, int $code = 400): void
 {
+    http_response_code($code);
     die(json_encode([
         'code' => $code,
         'msg'  => $message
