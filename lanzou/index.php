@@ -12,14 +12,23 @@ const CACHE_TTL = 600;
 // 获取请求参数
 $requestParams = [
     'url'  => filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '',
-    'pwd'  => filter_input(INPUT_GET, 'pwd', FILTER_SANITIZE_STRING) ?? '',
-    'type' => filter_input(INPUT_GET, 'type', FILTER_SANITIZE_STRING) ?? ''
+    'pwd'  => trim(strip_tags(filter_input(INPUT_GET, 'pwd'))) ?? '',
+    'type' => trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? ''
 ];
 
 // 参数校验
 if (empty($requestParams['url'])) {
     sendErrorResponse('请输入URL', 400);
 }
+// 确保 pwd 不超过 6 位
+if (strlen($requestParams['pwd']) > 6) {
+    sendErrorResponse('PWD不合法', 400);
+}
+// 确保 type 只能是 down, json 或空
+if (!in_array($requestParams['type'], ['down', 'json', ''])) {
+    sendErrorResponse('TYPE不合法', 400);
+}
+
 // apcu_clear_cache();
 // 构建完整URL
 $parsedUrl = parseLanzouUrl($requestParams['url']);
