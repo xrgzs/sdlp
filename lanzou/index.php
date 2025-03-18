@@ -4,41 +4,65 @@
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json; charset=utf-8');
 
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36';
+// 定义常量
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0';
+const CACHE_PREFIX = 'lanzou_';
+const CACHE_TTL = 600;
 
-// 获取请求参数（使用null合并运算符简化）
+// 获取请求参数
 $requestParams = [
-    'url'  => $_GET['url'] ?? '',
-    'pwd'  => $_GET['pwd'] ?? '',
-    'type' => $_GET['type'] ?? ''
+    'url'  => filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '',
+    'pwd'  => filter_input(INPUT_GET, 'pwd', FILTER_SANITIZE_STRING) ?? '',
+    'type' => filter_input(INPUT_GET, 'type', FILTER_SANITIZE_STRING) ?? ''
 ];
 
 // 参数校验
 if (empty($requestParams['url'])) {
     sendErrorResponse('请输入URL', 400);
 }
-
+// apcu_clear_cache();
 // 构建完整URL
 $parsedUrl = parseLanzouUrl($requestParams['url']);
+
+$cacheKey = CACHE_PREFIX . md5($parsedUrl . $requestParams['pwd']);
+
+// 尝试从 APCu 读取缓存
+$isApcuEnabled = function_exists('apcu_enabled') && apcu_enabled();
+if ($isApcuEnabled) {
+    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    $cachedData = apcu_fetch($cacheKey);
+    if ($cachedData !== false) {
+        // 缓存命中，跳过 API 请求
+        processApiResponse($cachedData, $requestParams['type']);
+        exit;
+    }
+}
+
+// 1. 获取网页内容
 $filePageContent = fetchPageContent($parsedUrl);
 
-// 检查文件有效性
+// 2. 检查文件有效性
 if (strpos($filePageContent, "文件取消分享了") !== false) {
     sendErrorResponse('文件取消分享了', 400);
 }
 
-// 提取文件信息
+// 3. 提取文件信息
 $fileInfo = extractFileInfo($filePageContent);
 
-// 处理带密码链接
+// 4. 解析带密码/公开链接的直链
 if (strpos($filePageContent, "function down_p(){") !== false) {
-    handlePasswordProtectedFile($filePageContent, $requestParams['pwd'], $parsedUrl);
+    handlePasswordProtectedFile($filePageContent, $requestParams['pwd'], $parsedUrl, $fileInfo);
 } else {
-    handlePublicFile($filePageContent, $parsedUrl);
+    handlePublicFile($filePageContent, $parsedUrl, $fileInfo);
 }
 
+// 存储文件信息到缓存（如果APCu可用）
+if ($isApcuEnabled) {
+    apcu_store($cacheKey, $fileInfo, CACHE_TTL);
+}
 // 处理API响应
 processApiResponse($fileInfo, $requestParams['type']);
+exit;
 
 /********************** 工具函数 **********************/
 
@@ -81,17 +105,17 @@ function extractFileInfo(string $content): array
     ];
 
     $info = ['name' => '', 'size' => ''];
-    
+
     foreach ($patterns['name'] as $pattern) {
         if (preg_match($pattern, $content, $matches)) {
-            $info['name'] = $matches[1];
+            $info['name'] = htmlspecialchars($matches[1]);
             break;
         }
     }
 
     foreach ($patterns['size'] as $pattern) {
         if (preg_match($pattern, $content, $matches)) {
-            $info['size'] = $matches[1];
+            $info['size'] = htmlspecialchars($matches[1]);
             break;
         }
     }
@@ -102,7 +126,7 @@ function extractFileInfo(string $content): array
 /**
  * 处理带密码文件
  */
-function handlePasswordProtectedFile(string $content, string $password, string $referer): void
+function handlePasswordProtectedFile(string $content, string $password, string $referer, array &$fileInfo): void
 {
     if (empty($password)) {
         sendErrorResponse('请输入分享密码');
@@ -125,29 +149,26 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         sendErrorResponse($responseData['inf'] ?? '解析失败');
     }
 
-    processDownloadUrl($responseData);
+    $fileInfo['downUrl'] = processDownloadUrl($responseData);
 }
 
 /**
  * 处理公开文件
  */
-function handlePublicFile(string $content, string $referer): void
+function handlePublicFile(string $content, string $referer, array &$fileInfo): void
 {
     preg_match_all("/<iframe.*?name=\"[\s\S]*?\"\ssrc=\"\/(.*?)\"/", $content, $iframeMatches);
     $iframeUrl = "https://www.lanzoup.com/" . ($iframeMatches[1][0] ?? '');
-    
+
     $iframeContent = fetchPageContent($iframeUrl);
     preg_match_all("/wp_sign = '(.*?)'/", $iframeContent, $signMatches);
     preg_match_all("/ajaxm\.php\?file=(\d+)/", $iframeContent, $fileIdMatches);
 
     $postData = [
         "action" => 'downprocess',
-        "signs"  => "?ctdf",
-		"websignkey" => "jeSg",
-		"websignkey" => "",
         "sign"   => $signMatches[1][0] ?? '',
         "kd"     => 1,
-        "ves"     => 1
+        "ves"    => 1
     ];
 
     $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $iframeUrl);
@@ -157,19 +178,18 @@ function handlePublicFile(string $content, string $referer): void
         sendErrorResponse($responseData['inf'] ?? '解析失败');
     }
 
-    processDownloadUrl($responseData);
+    $fileInfo['downUrl'] = processDownloadUrl($responseData);
 }
 
 /**
  * 处理最终下载链接
  */
-function processDownloadUrl(array $responseData): void
+function processDownloadUrl(array $responseData): string
 {
     $primaryUrl = $responseData['dom'] . '/file/' . $responseData['url'];
     $finalUrl = getRedirectUrl($primaryUrl) ?: $primaryUrl;
     $finalUrl = preg_replace('/pid=(.*?.)&/', '', $finalUrl);
-    
-    $_SESSION['final_download_url'] = $finalUrl; // 存储最终URL供后续使用
+    return $finalUrl;
 }
 
 /**
@@ -178,7 +198,7 @@ function processDownloadUrl(array $responseData): void
 function processApiResponse(array $fileInfo, string $requestType): void
 {
     if ($requestType === "down") {
-        header("Location: " . $_SESSION['final_download_url']);
+        header("Location: " . $fileInfo['downUrl']);
         exit;
     }
 
@@ -187,7 +207,7 @@ function processApiResponse(array $fileInfo, string $requestType): void
         'msg'      => '解析成功',
         'name'     => $fileInfo['name'],
         'filesize' => $fileInfo['size'],
-        'downUrl'  => $_SESSION['final_download_url']
+        'downUrl'  => $fileInfo['downUrl']
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
@@ -203,7 +223,8 @@ function fetchPageContent(string $url): string
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_HTTPHEADER => [
+        CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
+        CURLOPT_HTTPHEADER     => [
             'X-FORWARDED-FOR: ' . generateRandomIP(),
             'CLIENT-IP: ' . generateRandomIP()
         ]
@@ -221,9 +242,10 @@ function postRequest(array $data, string $url, string $referer = ''): string
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $data,
+        CURLOPT_POSTFIELDS     => http_build_query($data),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_REFERER        => $referer,
+        CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_HTTPHEADER     => [
             'X-FORWARDED-FOR: ' . generateRandomIP(),
@@ -240,8 +262,29 @@ function postRequest(array $data, string $url, string $referer = ''): string
  */
 function getRedirectUrl(string $url): string
 {
-    $headers = get_headers($url, 1);
-    return $headers['Location'] ?? '';
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_HEADER           => true,
+        CURLOPT_NOBODY     => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
+        CURLOPT_HTTPHEADER     => [
+            'X-FORWARDED-FOR: ' . generateRandomIP(),
+            'CLIENT-IP: ' . generateRandomIP(),
+            'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-encoding: gzip, deflate, br, zstd',
+            'accept-language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'priority: u=0, i',
+            'upgrade-insecure-requests: 1',
+            'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+        ]
+    ]);
+    curl_exec($ch);
+    $url=curl_getinfo($ch);
+    curl_close($ch);
+    return $url["redirect_url"];
 }
 
 /**
