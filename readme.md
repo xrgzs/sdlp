@@ -195,8 +195,6 @@ API 将直接跳转到匹配的 release 文件链接，或者提示未找到匹�
 
 ### 蓝奏API
 
-来自：<https://github.com/hanximeng/LanzouAPI>
-
 参数：
 
 - `url`：蓝奏云外链链接

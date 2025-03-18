@@ -1,223 +1,259 @@
 <?php
+
+// 初始化响应头
+header('Access-Control-Allow-Origin: *');
+header('Content-Type: application/json; charset=utf-8');
+
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36';
+
+// 获取请求参数（使用null合并运算符简化）
+$requestParams = [
+    'url'  => $_GET['url'] ?? '',
+    'pwd'  => $_GET['pwd'] ?? '',
+    'type' => $_GET['type'] ?? ''
+];
+
+// 参数校验
+if (empty($requestParams['url'])) {
+    sendErrorResponse('请输入URL', 400);
+}
+
+// 构建完整URL
+$parsedUrl = parseLanzouUrl($requestParams['url']);
+$filePageContent = fetchPageContent($parsedUrl);
+
+// 检查文件有效性
+if (strpos($filePageContent, "文件取消分享了") !== false) {
+    sendErrorResponse('文件取消分享了', 400);
+}
+
+// 提取文件信息
+$fileInfo = extractFileInfo($filePageContent);
+
+// 处理带密码链接
+if (strpos($filePageContent, "function down_p(){") !== false) {
+    handlePasswordProtectedFile($filePageContent, $requestParams['pwd'], $parsedUrl);
+} else {
+    handlePublicFile($filePageContent, $parsedUrl);
+}
+
+// 处理API响应
+processApiResponse($fileInfo, $requestParams['type']);
+
+/********************** 工具函数 **********************/
+
 /**
- * @package Lanzou
- * @author Filmy,hanximeng
- * @version 1.2.98
- * @Date 2024-12-17
- * @link https://hanximeng.com
+ * 发送JSON错误响应
  */
-header('Access-Control-Allow-Origin:*');
-header('Content-Type:application/json; charset=utf-8');
-//默认UA
-$UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36';
-$url = isset($_GET['url']) ? $_GET['url'] : "";
-$pwd = isset($_GET['pwd']) ? $_GET['pwd'] : "";
-$type = isset($_GET['type']) ? $_GET['type'] : "";
-//判断传入链接参数是否为空
-if (empty($url)) {
-	die(
-	    json_encode(
-	        array(
-	            'code' => 400,
-	            'msg' => '请输入URL'
-	        )
-	        , JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-	    );
+function sendErrorResponse(string $message, int $code = 400): void
+{
+    die(json_encode([
+        'code' => $code,
+        'msg'  => $message
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
-//一个简单的链接处理
-$url='https://www.lanzoup.com/'.explode('.com/',$url)['1'];
-$softInfo = MloocCurlGet($url);
-//判断文件链接是否失效
-if (strstr($softInfo, "文件取消分享了") != false) {
-	die(
-	    json_encode(
-	        array(
-	            'code' => 400,
-	            'msg' => '文件取消分享了'
-	        )
-	        , JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-	    );
+
+/**
+ * 构建完整蓝奏云URL
+ */
+function parseLanzouUrl(string $url): string
+{
+    $path = explode('.com/', $url)[1] ?? '';
+    return 'https://www.lanzoup.com/' . $path;
 }
-//取文件名称、大小
-preg_match('~style="font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;">(.*?)</div>~', $softInfo, $softName);
-if(!isset($softName[1])) {
-	preg_match('~<div class="n_box_3fn".*?>(.*?)</div>~', $softInfo, $softName);
+
+/**
+ * 提取文件信息（名称、大小）
+ */
+function extractFileInfo(string $content): array
+{
+    $patterns = [
+        'name' => [
+            '/style="font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;">(.*?)<\/div>/',
+            '/<div class="n_box_3fn".*?>(.*?)<\/div>/',
+            '/var filename = \'(.*?)\';/',
+            '/div class="b"><span>(.*?)<\/span><\/div>/'
+        ],
+        'size' => [
+            '/<div class="n_filesize".*?>大小：(.*?)<\/div>/',
+            '/<span class="p7">文件大小：<\/span>(.*?)<br>/'
+        ]
+    ];
+
+    $info = ['name' => '', 'size' => ''];
+    
+    foreach ($patterns['name'] as $pattern) {
+        if (preg_match($pattern, $content, $matches)) {
+            $info['name'] = $matches[1];
+            break;
+        }
+    }
+
+    foreach ($patterns['size'] as $pattern) {
+        if (preg_match($pattern, $content, $matches)) {
+            $info['size'] = $matches[1];
+            break;
+        }
+    }
+
+    return $info;
 }
-preg_match('~<div class="n_filesize".*?>大小：(.*?)</div>~', $softInfo, $softFilesize);
-if(!isset($softFilesize[1])) {
-	preg_match('~<span class="p7">文件大小：</span>(.*?)<br>~', $softInfo, $softFilesize);
+
+/**
+ * 处理带密码文件
+ */
+function handlePasswordProtectedFile(string $content, string $password, string $referer): void
+{
+    if (empty($password)) {
+        sendErrorResponse('请输入分享密码');
+    }
+
+    preg_match_all("/skdklds = '(.*?)';/", $content, $signMatches);
+    preg_match_all("/ajaxm\.php\?file=(\d+)/", $content, $fileIdMatches);
+
+    $postData = [
+        "action" => 'downprocess',
+        "sign"   => $signMatches[1][0] ?? '',
+        "p"      => $password,
+        "kd"     => 1
+    ];
+
+    $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $referer);
+    $responseData = json_decode($apiResponse, true);
+
+    if ($responseData['zt'] != 1) {
+        sendErrorResponse($responseData['inf'] ?? '解析失败');
+    }
+
+    processDownloadUrl($responseData);
 }
-if(!isset($softName[1])) {
-	preg_match('~var filename = \'(.*?)\';~', $softInfo, $softName);
+
+/**
+ * 处理公开文件
+ */
+function handlePublicFile(string $content, string $referer): void
+{
+    preg_match_all("/<iframe.*?name=\"[\s\S]*?\"\ssrc=\"\/(.*?)\"/", $content, $iframeMatches);
+    $iframeUrl = "https://www.lanzoup.com/" . ($iframeMatches[1][0] ?? '');
+    
+    $iframeContent = fetchPageContent($iframeUrl);
+    preg_match_all("/wp_sign = '(.*?)'/", $iframeContent, $signMatches);
+    preg_match_all("/ajaxm\.php\?file=(\d+)/", $iframeContent, $fileIdMatches);
+
+    $postData = [
+        "action" => 'downprocess',
+        "signs"  => "?ctdf",
+		"websignkey" => "jeSg",
+		"websignkey" => "",
+        "sign"   => $signMatches[1][0] ?? '',
+        "kd"     => 1,
+        "ves"     => 1
+    ];
+
+    $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $iframeUrl);
+    $responseData = json_decode($apiResponse, true);
+
+    if ($responseData['zt'] != 1) {
+        sendErrorResponse($responseData['inf'] ?? '解析失败');
+    }
+
+    processDownloadUrl($responseData);
 }
-if(!isset($softName[1])) {
-	preg_match('~div class="b"><span>(.*?)</span></div>~', $softInfo, $softName);
+
+/**
+ * 处理最终下载链接
+ */
+function processDownloadUrl(array $responseData): void
+{
+    $primaryUrl = $responseData['dom'] . '/file/' . $responseData['url'];
+    $finalUrl = getRedirectUrl($primaryUrl) ?: $primaryUrl;
+    $finalUrl = preg_replace('/pid=(.*?.)&/', '', $finalUrl);
+    
+    $_SESSION['final_download_url'] = $finalUrl; // 存储最终URL供后续使用
 }
-//带密码的链接的处理
-if(strstr($softInfo, "function down_p(){") != false) {
-	if(empty($pwd)) {
-		die(
-				json_encode(
-					array(
-						'code' => 400,
-						'msg' => '请输入分享密码'
-					)
-					, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-				);
-	}
-	preg_match_all("~skdklds = '(.*?)';~", $softInfo, $segment);
-	$post_data = array(
-			"action" => 'downprocess',
-			"sign" => $segment[1][0],
-			"p" => $pwd,
-			"kd" => 1
-		);
-	preg_match_all("/ajaxm\.php\?file=(\d+)/", $softInfo, $ajaxm);
-	$softInfo = MloocCurlPost($post_data, "https://www.lanzoup.com/ajaxm.php?file=" . $ajaxm[1][0], $url);
-	$softName[1] = json_decode($softInfo,JSON_UNESCAPED_UNICODE)['inf'];
-} else {
-	//不带密码的链接处理
-	preg_match("~\n<iframe.*?name=\"[\s\S]*?\"\ssrc=\"\/(.*?)\"~", $softInfo, $link);
-	//蓝奏云新版页面正则规则
-	if(empty($link[1])) {
-		preg_match("~<iframe.*?name=\"[\s\S]*?\"\ssrc=\"\/(.*?)\"~", $softInfo, $link);
-	}
-	$ifurl = "https://www.lanzoup.com/" . $link[1];
-	$softInfo = MloocCurlGet($ifurl);
-	preg_match_all("~'sign':'(.*?)'~", $softInfo, $segment);
-	preg_match_all("/ajaxm\.php\?file=(\d+)/", $softInfo, $ajaxm);
-	$post_data = array(
-			"action" => 'downprocess',
-			"signs"=>"?ctdf",
-			"sign" => $segment[1][0],
-			"kd" => 1
-		);
-	$softInfo = MloocCurlPost($post_data, "https://www.lanzoup.com/ajaxm.php?file=" . $ajaxm[1][0], $ifurl);
+
+/**
+ * 发送最终响应
+ */
+function processApiResponse(array $fileInfo, string $requestType): void
+{
+    if ($requestType === "down") {
+        header("Location: " . $_SESSION['final_download_url']);
+        exit;
+    }
+
+    die(json_encode([
+        'code'     => 200,
+        'msg'      => '解析成功',
+        'name'     => $fileInfo['name'],
+        'filesize' => $fileInfo['size'],
+        'downUrl'  => $_SESSION['final_download_url']
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
-//其他情况下的信息输出
-$softInfo = json_decode($softInfo, true);
-if ($softInfo['zt'] != 1) {
-	die(
-	    json_encode(
-	        array(
-	            'code' => 400,
-	            'msg' => $softInfo['inf']
-	        )
-	        , JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-	    );
+
+/********************** 网络请求相关 **********************/
+
+/**
+ * 执行GET请求
+ */
+function fetchPageContent(string $url): string
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER => [
+            'X-FORWARDED-FOR: ' . generateRandomIP(),
+            'CLIENT-IP: ' . generateRandomIP()
+        ]
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    return $response;
 }
-//拼接链接
-$downUrl1 = $softInfo['dom'] . '/file/' . $softInfo['url'];
-//解析最终直链地址
-$downUrl2 = MloocCurlHead($downUrl1,"https://developer.lanzoug.com",$UserAgent,"down_ip=1; expires=Sat, 16-Nov-2019 11:42:54 GMT; path=/; domain=.baidupan.com");
-//判断最终链接是否获取成功，如未成功则使用原链接
-if($downUrl2 == "") {
-	$downUrl = $downUrl1;
-} else {
-	$downUrl = $downUrl2;
+
+/**
+ * 执行POST请求
+ */
+function postRequest(array $data, string $url, string $referer = ''): string
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $data,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_REFERER        => $referer,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER     => [
+            'X-FORWARDED-FOR: ' . generateRandomIP(),
+            'CLIENT-IP: ' . generateRandomIP()
+        ]
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    return $response;
 }
-//2024-12-03 修复pid参数可能导致的服务器ip地址泄露
-$downUrl=preg_replace('/pid=(.*?.)&/', '', $downUrl);
-//判断是否是直接下载
-if ($type != "down") {
-	die(
-	    json_encode(
-	        array(
-	            'code' => 200,
-	            'msg' => '解析成功',
-	            'name' => isset($softName[1]) ? $softName[1] : "",
-	            'filesize' => isset($softFilesize[1]) ? $softFilesize[1] : "",
-	            'downUrl' => $downUrl
-	        )
-	        , JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-	    );
-} else {
-	header("Location:$downUrl");
-	die;
+
+/**
+ * 获取重定向URL
+ */
+function getRedirectUrl(string $url): string
+{
+    $headers = get_headers($url, 1);
+    return $headers['Location'] ?? '';
 }
-//获取下载链接函数
-function MloocCurlGetDownUrl($url) {
-	$header = get_headers($url,1);
-	if(isset($header['Location'])) {
-		return $header['Location'];
-	}
-	return "";
+
+/**
+ * 生成随机IP
+ */
+function generateRandomIP(): string
+{
+    $ipSegments = [
+        mt_rand(218, 222),
+        mt_rand(0, 255),
+        mt_rand(0, 255),
+        mt_rand(0, 255)
+    ];
+    return implode('.', $ipSegments);
 }
-//CURL函数
-function MloocCurlGet($url = '', $UserAgent = '') {
-	$curl = curl_init();
-	curl_setopt($curl, CURLOPT_URL, $url);
-	curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
-	if ($UserAgent != "") {
-		curl_setopt($curl, CURLOPT_USERAGENT, $UserAgent);
-	}
-	curl_setopt($curl, CURLOPT_HTTPHEADER, array('X-FORWARDED-FOR:'.Rand_IP(), 'CLIENT-IP:'.Rand_IP()));
-	#关闭SSL
-	    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-	#返回数据不直接显示
-	    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-	$response = curl_exec($curl);
-	curl_close($curl);
-	return $response;
-}
-//POST函数
-function MloocCurlPost($post_data = '', $url = '', $ifurl = '', $UserAgent = '') {
-	$curl = curl_init();
-	curl_setopt($curl, CURLOPT_URL, $url);
-	curl_setopt($curl, CURLOPT_USERAGENT, $UserAgent);
-	if ($ifurl != '') {
-		curl_setopt($curl, CURLOPT_REFERER, $ifurl);
-	}
-	curl_setopt($curl, CURLOPT_HTTPHEADER, array('X-FORWARDED-FOR:'.Rand_IP(), 'CLIENT-IP:'.Rand_IP()));
-	#关闭SSL
-	    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-	#返回数据不直接显示
-	    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($curl, CURLOPT_POST, 1);
-	curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
-	$response = curl_exec($curl);
-	curl_close($curl);
-	return $response;
-}
-//直链解析函数
-function MloocCurlHead($url,$guise,$UserAgent,$cookie) {
-	$headers = array(
-		'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-		'Accept-Encoding: gzip, deflate',
-		'Accept-Language: zh-CN,zh;q=0.9',
-		'Cache-Control: no-cache',
-		'Connection: keep-alive',
-		'Pragma: no-cache',
-		'Upgrade-Insecure-Requests: 1',
-		'User-Agent: '.$UserAgent
-	);
-	$curl = curl_init();
-	curl_setopt($curl, CURLOPT_URL, $url);
-	curl_setopt($curl, CURLOPT_HTTPHEADER,$headers);
-	curl_setopt($curl, CURLOPT_REFERER, $guise);
-	curl_setopt($curl, CURLOPT_COOKIE , $cookie);
-	curl_setopt($curl, CURLOPT_USERAGENT, $UserAgent);
-	curl_setopt($curl, CURLOPT_NOBODY, 0);
-	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($curl, CURLINFO_HEADER_OUT, TRUE);
-	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-	//超时设置，默认为10秒
-	curl_setopt($curl, CURLOPT_TIMEOUT, 10);
-	$data = curl_exec($curl);
-	$url=curl_getinfo($curl);
-	curl_close($curl);
-	return $url["redirect_url"];
-}
-//随机IP函数
-function Rand_IP() {
-	$ip2id = round(rand(600000, 2550000) / 10000);
-	$ip3id = round(rand(600000, 2550000) / 10000);
-	$ip4id = round(rand(600000, 2550000) / 10000);
-	$arr_1 = array("218","218","66","66","218","218","60","60","202","204","66","66","66","59","61","60","222","221","66","59","60","60","66","218","218","62","63","64","66","66","122","211");
-	$randarr= mt_rand(0,count($arr_1)-1);
-	$ip1id = $arr_1[$randarr];
-	return $ip1id.".".$ip2id.".".$ip3id.".".$ip4id;
-}
-?>
