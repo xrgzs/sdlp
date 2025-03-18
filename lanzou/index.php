@@ -132,7 +132,7 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         sendErrorResponse('请输入分享密码');
     }
 
-    preg_match_all("/skdklds = '(.*?)';/", $content, $signMatches);
+    preg_match_all("/bcdf = '(.*?)';/", $content, $signMatches);
     preg_match_all("/ajaxm\.php\?file=(\d+)/", $content, $fileIdMatches);
 
     $postData = [
@@ -161,7 +161,7 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
     $iframeUrl = "https://www.lanzoup.com/" . ($iframeMatches[1][0] ?? '');
 
     $iframeContent = fetchPageContent($iframeUrl);
-    preg_match_all("/wp_sign = '(.*?)'/", $iframeContent, $signMatches);
+    preg_match_all("/wp_sign = '(.*?)';/", $iframeContent, $signMatches);
     preg_match_all("/ajaxm\.php\?file=(\d+)/", $iframeContent, $fileIdMatches);
 
     $postData = [

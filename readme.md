@@ -203,13 +203,13 @@ API 将直接跳转到匹配的 release 文件链接，或者提示未找到匹�
 
 直接下载：
 
-- 无密码：<http://your-domain/lanzou/?url=https://www.lanzous.com/i6th9cd&type=down>
-- 有密码：<http://your-domain/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&type=down&pwd=1234>
+- 无密码：<http://your-domain/lanzou/?url=https://www.lanzoup.com/i6th9cd&type=down>
+- 有密码：<http://your-domain/lanzou/?url=https://www.lanzoup.com/i42Xxebssfg&type=down&pwd=1234>
 
 输出直链：
 
-- 无密码：<http://your-domain/lanzou/?url=https://www.lanzous.com/i6th9cd>
-- 有密码：<http://your-domain/lanzou/?url=https://www.lanzous.com/i42Xxebssfg&pwd=1234>
+- 无密码：<http://your-domain/lanzou/?url=https://www.lanzoup.com/i6th9cd>
+- 有密码：<http://your-domain/lanzou/?url=https://www.lanzoup.com/i42Xxebssfg&pwd=1234>
 
 ### 随机图API
 
