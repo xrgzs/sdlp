@@ -185,7 +185,7 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
     $responseData = json_decode($apiResponse, true);
 
     if ($responseData['zt'] != 1) {
-        sendErrorResponse($responseData['inf'] ?? '解析失败');
+        sendErrorResponse($responseData['inf'] ?? '解析失败', 500);
     }
 
     $fileInfo['downUrl'] = processDownloadUrl($responseData);
