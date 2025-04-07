@@ -11,49 +11,9 @@
 
 ### 自动跳转软件官网下载链接
 
-#### 飞书
-
-<http://your-domain/soft/feishu> 直接下载 飞书电脑版
-
-#### 腾讯会议
-
-<http://your-domain/soft/tencentmeeting> 直接下载 腾讯会议电脑版 64位
-
-<http://your-domain/soft/tencentmeeting?x86> 直接下载 腾讯会议电脑版 32位
-
-#### 千牛
-
-<http://your-domain/soft/qianniu> 直接下载 千牛Windows x64版
-
-<http://your-domain/soft/qianniu?param=x64> 直接下载 千牛Windows x64版
-
-<http://your-domain/soft/qianniu?param=x32> 直接下载 千牛Windows x32版
-
 #### 火绒安全软件电脑版
 
 <http://your-domain/soft/huorong> 直接下载 火绒
-
-#### QQ
-
-<http://your-domain/soft/qq> 直接下载 QQ 传统版
-
-参数：`param`: 获取内容
-
-<http://your-domain/soft/qq?param=downloadUrl> 直接下载 QQ 传统版
-
-<http://your-domain/soft/qq?param=ntDownloadUrl> 直接下载 NTQQ 32位
-
-<http://your-domain/soft/qq?param=ntDownloadX64Url> 直接下载 NTQQ 64位
-
-#### 微信
-
-用不着解析，直接:
-
-<http://dldir1v6.qq.com/weixin/Windows/WeChatSetup.exe>
-
-<http://dldir1v6.qq.com/weixin/Windows/WeChatSetup_x86.exe>
-
-<http://dldir1v6.qq.com/weixin/Windows/WeChat_for_XP_SP3_To_Vista.exe>
 
 #### 微信输入法
 
