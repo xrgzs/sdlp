@@ -4,7 +4,7 @@ $cacheKeyPrefix = 'ghrelease'; // 唯一缓存键名
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
 // 处理重定向函数
-function handleLocation($url)
+function handleLocation($url, $mirror_name = '')
 {
     if (!empty($mirror_name)) {
         $url = 'https://gh.xrgzs.top/' . $url;
@@ -67,7 +67,7 @@ if (function_exists('apcu_enabled') && apcu_enabled()) {
     $downloadUrl = apcu_fetch($cacheKey);
     if ($downloadUrl !== false) {
         // 命中缓存，直接重定向并设置响应头
-        handleLocation($downloadUrl);
+        handleLocation($downloadUrl, $mirror_name);
         exit;
     }
 }
@@ -130,5 +130,5 @@ if (function_exists('apcu_store') && $downloadUrl !== false) {
     apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
 }
 
-handleLocation($downloadUrl);
+handleLocation($downloadUrl, $mirror_name);
 exit;
