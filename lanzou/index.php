@@ -142,21 +142,20 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         sendErrorResponse('请输入分享密码');
     }
 
-    preg_match_all("/bcdf = '(.*?)';/", $content, $signMatches);
-    preg_match_all("/ajaxm\.php\?file=(\d+)/", $content, $fileIdMatches);
+    preg_match_all('/\'sign\'\s{0,}:\s{0,}\'(\w{10,})\',/m', $content, $signMatches);
+    preg_match_all("/\/ajaxm\.php\?file=(\d{2,})/m", $content, $fileIdMatches);
 
     $postData = [
         "action" => 'downprocess',
-        "sign"   => $signMatches[1][0] ?? '',
+        "sign"   => end($signMatches[1]) ?? '',
         "p"      => $password,
         "kd"     => 1
     ];
-
     $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $referer);
     $responseData = json_decode($apiResponse, true);
 
     if ($responseData['zt'] != 1) {
-        sendErrorResponse($responseData['inf'] ?? '解析失败');
+        sendErrorResponse($responseData['inf'] ?? '解析失败', 500);
     }
 
     $fileInfo['downUrl'] = processDownloadUrl($responseData);
@@ -171,8 +170,8 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
     $iframeUrl = "https://www.lanzoup.com/" . ($iframeMatches[1][0] ?? '');
 
     $iframeContent = fetchPageContent($iframeUrl);
-    preg_match_all("/wp_sign = '(.*?)';/", $iframeContent, $signMatches);
-    preg_match_all("/ajaxm\.php\?file=(\d+)/", $iframeContent, $fileIdMatches);
+    preg_match_all('/wp_sign\s{0,}=\s{0,}\'(\w{10,})\';/m', $iframeContent, $signMatches);
+    preg_match_all("/\/ajaxm\.php\?file=(\d{2,})/m", $iframeContent, $fileIdMatches);
 
     $postData = [
         "action" => 'downprocess',
@@ -181,7 +180,7 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
         "ves"    => 1
     ];
 
-    $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $iframeUrl);
+    $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $iframeUrl, $referer);
     $responseData = json_decode($apiResponse, true);
 
     if ($responseData['zt'] != 1) {
@@ -292,7 +291,7 @@ function getRedirectUrl(string $url): string
         ]
     ]);
     curl_exec($ch);
-    $url=curl_getinfo($ch);
+    $url = curl_getinfo($ch);
     curl_close($ch);
     return $url["redirect_url"];
 }
