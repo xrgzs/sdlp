@@ -1,7 +1,7 @@
 <?php
 // 定义常量
 define('BASE_URL', "https://pc-store.lenovomm.cn/dlservice/getPcSoftDownloadUrlList?");
-define('CACHE_TIME', 300);
+define('CACHE_TIME', 300); 
 
 // 输入参数
 $softid = $_GET['softid'] ?? '';
