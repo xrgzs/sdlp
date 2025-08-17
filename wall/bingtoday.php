@@ -17,7 +17,7 @@ if (function_exists('apcu_enabled') && apcu_enabled()) {
 $ch = curl_init();
 
 curl_setopt_array($ch, array(
-   CURLOPT_URL => 'https://raw.onmicrosoft.cn/Bing-Wallpaper-Action/main/data/zh-CN_update.json',
+   CURLOPT_URL => 'https://gh.xrgzs.top/https://raw.githubusercontent.com/zkeq/Bing-Wallpaper-Action/main/data/zh-CN_update.json',
    CURLOPT_RETURNTRANSFER => true,
    CURLOPT_HTTPHEADER => array(
       'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.95 Safari/537.36'
