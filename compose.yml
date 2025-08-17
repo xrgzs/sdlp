@@ -1,0 +1,9 @@
+services:
+  sdlp-app:
+    build: .
+    container_name: sdlp-app
+    restart: always
+    ports:
+      - "5080:80" # HTTP
+    volumes:
+      - .:/app/public
