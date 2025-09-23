@@ -5,9 +5,9 @@ $cacheTTL = 43200; // 缓存有效期 12 小时（秒）
 
 // 尝试从 APCu 读取缓存
 if (function_exists('apcu_enabled') && apcu_enabled()) {
-    header("X-App-Cache: ". (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
     $response = apcu_fetch($cacheKey);
-    if ($response !== false) {
+    if ($response !== false && !empty($response)) {
         // 缓存命中，跳过 API 请求
         goto parse_json; // 直接进入解析阶段
     }
@@ -17,11 +17,12 @@ if (function_exists('apcu_enabled') && apcu_enabled()) {
 $ch = curl_init();
 
 curl_setopt_array($ch, array(
-   CURLOPT_URL => 'https://gh.xrgzs.top/https://raw.githubusercontent.com/zkeq/Bing-Wallpaper-Action/main/data/zh-CN_all.json',
-   CURLOPT_RETURNTRANSFER => true,
-   CURLOPT_HTTPHEADER => array(
-      'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.95 Safari/537.36'
-   ),
+    CURLOPT_URL => 'https://gh.xrgzs.top/https://raw.githubusercontent.com/zkeq/Bing-Wallpaper-Action/main/data/zh-CN_all.json',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_FOLLOWLOCATION => true, // 跟随重定向
+    CURLOPT_HTTPHEADER => array(
+        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.95 Safari/537.36'
+    ),
 ));
 
 // 发起请求
