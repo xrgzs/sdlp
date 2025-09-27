@@ -93,7 +93,7 @@ function sendErrorResponse(string $message, int $code = 400): void
 function parseLanzouUrl(string $url): string
 {
     $path = explode('.com/', $url)[1] ?? '';
-    return 'https://www.lanzoup.com/' . $path;
+    return 'https://www.lanzouf.com/' . $path;
 }
 
 /**
@@ -151,7 +151,7 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         "p"      => $password,
         "kd"     => 1
     ];
-    $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $referer);
+    $apiResponse = postRequest($postData, "https://www.lanzouf.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $referer);
     $responseData = json_decode($apiResponse, true);
 
     if ($responseData['zt'] != 1) {
@@ -167,7 +167,7 @@ function handlePasswordProtectedFile(string $content, string $password, string $
 function handlePublicFile(string $content, string $referer, array &$fileInfo): void
 {
     preg_match_all("/<iframe.*?name=\"[\s\S]*?\"\ssrc=\"\/(.*?)\"/", $content, $iframeMatches);
-    $iframeUrl = "https://www.lanzoup.com/" . ($iframeMatches[1][0] ?? '');
+    $iframeUrl = "https://www.lanzouf.com/" . ($iframeMatches[1][0] ?? '');
 
     $iframeContent = fetchPageContent($iframeUrl);
     preg_match_all('/wp_sign\s{0,}=\s{0,}\'(\w{10,})\';/m', $iframeContent, $signMatches);
@@ -180,7 +180,7 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
         "ves"    => 1
     ];
 
-    $apiResponse = postRequest($postData, "https://www.lanzoup.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $iframeUrl, $referer);
+    $apiResponse = postRequest($postData, "https://www.lanzouf.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $iframeUrl, $referer);
     $responseData = json_decode($apiResponse, true);
 
     if ($responseData['zt'] != 1) {
