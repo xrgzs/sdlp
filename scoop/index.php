@@ -33,6 +33,29 @@ $bucket = htmlspecialchars($bucket);
 $branch = htmlspecialchars($branch);
 // $arch = htmlspecialchars($arch);
 
+
+// bucket 白名单
+if (!in_array(strtolower($bucket), [
+    'scoopinstaller/main',
+    'scoopinstaller/extras',
+    'scoopinstaller/versions',
+    'scoopinstaller/nirsoft',
+    'scoopinstaller/niheaven/scoop-sysinternals',
+    'scoopinstaller/scoopinstaller/php',
+    'scoopinstaller/scoopinstaller/php',
+    'matthewjberger/scoop-nerd-fonts',
+    'scoopinstaller/nonportable',
+    'scoopinstaller/java',
+    'calinou/scoop-games',
+    'xrgzs/sdoog',
+    'chawyehsu/dorado',
+    'arch3rpro/pst-bucket',
+    'hoilc/scoop-lemon',
+], true)) {
+    http_response_code(404);
+    die('bucket 不在白名单');
+}
+
 // 生成缓存键
 $cacheKey = $cacheKeyPrefix . $name . $bucket . $branch . $arch;
 
