@@ -209,16 +209,26 @@ API 将直接跳转到匹配的 release 文件链接，或者提示未找到匹�
 
 ## 部署
 
+### Docker 部署
+
+```bash
+mkdir -p /opt/sdlp
+cd /opt/sdlp
+wget https://raw.githubusercontent.com/xrgzs/sdlp/main/compose.yml -O docker-compose.yml
+docker compose up -d
+```
+
+### 1Panel 环境部署
+
 - HTTP Web Server
   - 此处使用 1Panel 环境
-
 - PHP 建议使用8.1+
   - 启用 `CURL`扩展
 - 克隆本仓库到服务器的网站目录
 - 部分需要配置本地反代，并替换文件内接口
 - PHP是“最好的”语言，所以请务必配置 WAF
 
-## 安装
+### 安装
 
 创建运行环境：PHP 8，带上扩展 `curl`、`apcu`（可选，不安装无缓存）
 
@@ -242,7 +252,7 @@ git clone https://gh.xrgzs.top/https://github.com/xrgzs/sdlp.git
 root /www/sites/your-domain/index/sdlp; 
 ```
 
-## 更新
+### 更新
 
 ```bash
 cd /opt/1panel/apps/openresty/openresty/www/sites/your-domain/index/sdlp
@@ -256,9 +266,9 @@ cd /opt/1panel/apps/openresty/openresty/www/sites/your-domain/index/sdlp
 git fetch && git reset --hard origin/main
 ```
 
-## 配置
+### 配置
 
-### 反代 GitHub API
+#### 反代 GitHub API
 
 为了最大程度上避免请求限制，请反向代理 GitHub API，设置您自己的 GitHub Token 并增加缓存，最好是在本地。如果您的服务器有很多人使用，建议本地 hosts + 证书劫持 GitHub API 域名。
 

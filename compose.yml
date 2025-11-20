@@ -1,9 +1,8 @@
 services:
   sdlp-app:
-    build: .
+    # build: .
+    image: ghcr.io/xrgzs/sdlp:latest
     container_name: sdlp-app
     restart: always
     ports:
       - "5080:80" # HTTP
-    volumes:
-      - .:/app/public

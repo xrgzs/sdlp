@@ -1,0 +1,18 @@
+# VCS and CI
+.git
+.github
+.gitignore
+
+# Local and docs
+# README.md
+# readme.md
+# *.md
+
+# Docker files and compose
+.dockerignore
+Dockerfile
+compose.yml
+docker-compose.yml
+
+# Dependencies and caches
+.DS_Store
