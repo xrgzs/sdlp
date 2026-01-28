@@ -16,7 +16,7 @@ if (!preg_match('/^[A-Za-z0-9]+$/', $softid)) { // 允许字母和数字组合
 }
 
 // 生成缓存键
-$cacheKey = $cacheKeyPrefix . $nsoftid;
+$cacheKey = $cacheKeyPrefix . $softid;
 
 // 尝试从 APCu 读取缓存
 if (function_exists('apcu_enabled') && apcu_enabled()) {
