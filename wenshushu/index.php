@@ -15,13 +15,13 @@ const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 
 // 获取请求参数
 $url = filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '';
 $pwd = trim(strip_tags(filter_input(INPUT_GET, 'pwd'))) ?? '';
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? '';
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
 // 参数校验
 if (empty($url)) {
     sendErrorResponse('请输入URL', 400);
 }
-if (!in_array($type, ['down', 'json', ''])) {
+if (!in_array($type, ['down', 'json'])) {
     sendErrorResponse('TYPE不合法', 400);
 }
 
