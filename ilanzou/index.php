@@ -11,10 +11,14 @@ const CACHE_TTL = 600;
 // 获取请求参数
 $url = filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '';
 $pwd = trim(strip_tags(filter_input(INPUT_GET, 'pwd'))) ?? '';
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? '';
 
 // 参数校验
 if (empty($url)) {
     sendErrorResponse('请输入URL', 400);
+}
+if (!in_array($type, ['down', 'json', ''])) {
+    sendErrorResponse('TYPE不合法', 400);
 }
 
 // 提取 shareId
@@ -32,6 +36,13 @@ if ($isApcuEnabled) {
     header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
     $cachedData = apcu_fetch($cacheKey);
     if ($cachedData !== false) {
+        if ($type === 'down') {
+            $cachedJson = json_decode($cachedData, true);
+            if (!empty($cachedJson['downUrl'])) {
+                header('Location: ' . $cachedJson['downUrl'], true, 302);
+                exit;
+            }
+        }
         echo $cachedData;
         exit;
     }
@@ -171,6 +182,12 @@ $result = json_encode([
 // 存储缓存
 if ($isApcuEnabled && !empty($downUrl)) {
     apcu_store($cacheKey, $result, CACHE_TTL);
+}
+
+// 302跳转
+if ($type === 'down') {
+    header('Location: ' . $downUrl, true, 302);
+    exit;
 }
 
 echo $result;
