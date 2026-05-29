@@ -68,6 +68,23 @@
 | `/wall/wetab.php` | WeTab 标签页壁纸 |
 | `/wall/wetabrand.php` | WeTab 随机壁纸 |
 
+## 📋 通用参数
+
+以下参数适用于所有解析类接口：
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `type` | 响应类型 | `down` |
+
+- `type=down` 或不传：直接 302 跳转到下载链接
+- `type=json`：返回 JSON 格式响应
+
+示例：
+```
+/feijipan/xxxxxx              # 默认 302 跳转
+/feijipan/xxxxxx?type=json    # 返回 JSON
+```
+
 ## 🚀 快速开始
 
 ### Docker 部署（推荐）
@@ -195,7 +212,7 @@ server {
 |------|------|------|--------|
 | `repo` | 仓库名称 | 是 | - |
 | `tag` | 版本号 | 否 | `latest` |
-| `search` | 搜索关键词 | 否 | 匹配最后一个文件 |
+| `search` | 搜索关键词 | 否 | 匹配第一个文件 |
 | `filter` | 二次过滤（文件扩展名） | 否 | - |
 | `mirror` | 加速镜像 | 否 | 直连 |
 

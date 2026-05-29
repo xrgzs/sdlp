@@ -12,7 +12,7 @@ const CACHE_TTL = 600;
 $requestParams = [
     // 'url'  => filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '',
     'batchId'  => trim(strip_tags(filter_input(INPUT_GET, 'batchId'))) ?? '',
-    'type' => trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? ''
+    'type' => trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down'
 ];
 
 // 参数校验
@@ -20,8 +20,8 @@ $requestParams = [
 //     sendErrorResponse('请输入URL', 400);
 // }
 
-// 确保 type 只能是 down, json 或空
-if (!in_array($requestParams['type'], ['down', 'json', ''])) {
+// 确保 type 只能是 down 或 json
+if (!in_array($requestParams['type'], ['down', 'json'])) {
     sendErrorResponse('TYPE不合法', 400);
 }
 
