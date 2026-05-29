@@ -42,11 +42,18 @@ $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $apiUrl);
 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // 验证SSL证书
-curl_setopt($ch, CURLOPT_ENCODING, 'gzip, deflate, br'); // 支持压缩
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+curl_setopt($ch, CURLOPT_ENCODING, 'gzip, deflate, br');
 
-// 执行请求
-$response = curl_exec($ch);
+// 执行请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 
 // 检查是否有错误
 if (curl_errno($ch)) {
@@ -56,7 +63,6 @@ if (curl_errno($ch)) {
     exit;
 }
 
-// 关闭cURL
 curl_close($ch);
 
 // 解析JSON响应
@@ -93,8 +99,8 @@ if (empty($downloadUrl)) {
 }
 
 // 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && $downloadUrl !== false) {
-    apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
+if (function_exists('apcu_store') && !empty($downloadUrl)) {
+    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
 }
 
 // 重定向到下载链接

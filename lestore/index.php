@@ -1,6 +1,6 @@
 <?php
 // APCU 缓存配置
-$cacheKeyPrefix = 'scoop'; // 唯一缓存键名
+$cacheKeyPrefix = 'lestore'; // 唯一缓存键名
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
 // 定义常量
@@ -37,8 +37,15 @@ $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-// 发起 GET 请求
-$response = curl_exec($ch);
+// 发起请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 
 // 检查是否有错误
 if (curl_errno($ch)) {
@@ -46,7 +53,6 @@ if (curl_errno($ch)) {
     die('cURL 请求出错：' . curl_error($ch));
 }
 
-// 关闭 cURL
 curl_close($ch);
 
 // 解析 JSON 响应
@@ -60,7 +66,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 $downloadUrl = $jsonResponse['data']['downloadUrls'][0]['downLoadUrl'];
 
 // 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && $downloadUrl !== false) {
+if (function_exists('apcu_store') && !empty($downloadUrl)) {
     apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
 }
 

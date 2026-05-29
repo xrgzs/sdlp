@@ -79,7 +79,7 @@ curl_setopt_array($ch, array(
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_MAXREDIRS => 5,
     CURLOPT_TIMEOUT => 10,
-    CURLOPT_MAXFILESIZE => 1 * 1024 * 1024, // 设置最大文件大小为1MB
+    CURLOPT_MAXFILESIZE => 1 * 1024 * 1024,
     CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
     CURLOPT_CUSTOMREQUEST => 'GET',
@@ -88,7 +88,15 @@ curl_setopt_array($ch, array(
     ),
 ));
 
-$response = curl_exec($ch);
+// 发起请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 if (curl_errno($ch)) {
     http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
@@ -114,7 +122,7 @@ if (strpos($downloadUrl, 'https://github.com/') === 0) {
 }
 
 // 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && $downloadUrl !== false) {
+if (function_exists('apcu_store') && !empty($downloadUrl)) {
     apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
 }
 

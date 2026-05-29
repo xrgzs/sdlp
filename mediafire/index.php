@@ -9,6 +9,24 @@ if (isset($_GET['url'])) {
         exit;
     }
 
+    // APCU 缓存配置
+    $cacheKeyPrefix = 'mediafire_'; // 唯一缓存键名前缀
+    $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
+
+    // 生成缓存键
+    $cacheKey = $cacheKeyPrefix . md5($inputurl);
+
+    // 尝试从 APCu 读取缓存
+    if (function_exists('apcu_enabled') && apcu_enabled()) {
+        header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+        $downloadUrl = apcu_fetch($cacheKey);
+        if ($downloadUrl !== false) {
+            http_response_code(302);
+            header("Location: " . $downloadUrl);
+            exit;
+        }
+    }
+
   $pattern = '/^https?:\/\/www\.mediafire\.com\/(file|view|download)\/(\w+)\/(.*)/i';
     if (!preg_match($pattern, $inputurl, $matches)) {
         http_response_code(500);
@@ -26,7 +44,16 @@ if (isset($_GET['url'])) {
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36');
-    $html = curl_exec($ch);
+
+    // 发起请求（带重试）
+    $maxRetries = 2;
+    $retryDelay = 300;
+    $html = false;
+    for ($i = 0; $i <= $maxRetries; $i++) {
+        $html = curl_exec($ch);
+        if ($html !== false && curl_errno($ch) === 0) break;
+        if ($i < $maxRetries) usleep($retryDelay * 1000);
+    }
     curl_close($ch);
 
     if ($html === false) {
@@ -40,8 +67,13 @@ if (isset($_GET['url'])) {
     preg_match($pattern, $html, $matches);
 
     if (isset($matches[0])) {
+        $downloadUrl = $matches[0];
+        // 将新数据存入 APCu 缓存
+        if (function_exists('apcu_store')) {
+            apcu_store($cacheKey, $downloadUrl, $cacheTTL);
+        }
         http_response_code(302);
-        header("Location: " . $matches[0]);
+        header("Location: " . $downloadUrl);
         exit;
     } else {
 		http_response_code(404);

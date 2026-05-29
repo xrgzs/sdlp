@@ -19,14 +19,21 @@ $ch = curl_init();
 curl_setopt_array($ch, array(
     CURLOPT_URL => 'https://gh.xrgzs.top/https://raw.githubusercontent.com/zkeq/Bing-Wallpaper-Action/main/data/zh-CN_all.json',
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_FOLLOWLOCATION => true, // 跟随重定向
+    CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_HTTPHEADER => array(
         'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.95 Safari/537.36'
     ),
 ));
 
-// 发起请求
-$response = curl_exec($ch);
+// 发起请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 
 // 检查是否有错误
 if (curl_errno($ch)) {
@@ -34,13 +41,7 @@ if (curl_errno($ch)) {
     die('cURL 请求出错：' . curl_error($ch));
 }
 
-// 关闭 cURL
 curl_close($ch);
-
-// 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && $response !== false) {
-    apcu_store($cacheKey, $response, $cacheTTL); // 存储时自动覆盖旧缓存
-}
 
 parse_json:
 // 解析 JSON 响应
@@ -48,6 +49,11 @@ $jsonResponse = json_decode($response, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(500);
     die('JSON 解析失败: ' . json_last_error_msg());
+}
+
+// 验证数据完整性后再缓存
+if (function_exists('apcu_store') && isset($jsonResponse['data'])) {
+    apcu_store($cacheKey, $response, $cacheTTL);
 }
 
 // 获取数组长度

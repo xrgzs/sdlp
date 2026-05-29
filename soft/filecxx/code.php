@@ -1,17 +1,37 @@
 <?php
-// 执行cURL会话
+// APCU 缓存配置
+$cacheKey = 'filecxx_code'; // 唯一缓存键名
+$cacheTTL = 3600; // 缓存有效期 1 小时（秒）
+
+// 尝试从 APCu 读取缓存
+if (function_exists('apcu_enabled') && apcu_enabled()) {
+    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    $cachedResult = apcu_fetch($cacheKey);
+    if ($cachedResult !== false) {
+        echo $cachedResult;
+        exit;
+    }
+}
+
+// 执行cURL会话（带重试）
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, "http://filecxx.com/zh_CN/activation_code.html"); // 请求的URL
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 将结果作为字符串返回，而不是直接输出
-curl_setopt($ch, CURLOPT_HEADER, false); // 不返回响应头
-$response = curl_exec($ch);
-curl_close($ch)
-;
+curl_setopt($ch, CURLOPT_URL, "http://filecxx.com/zh_CN/activation_code.html");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HEADER, false);
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 // 检查是否有错误发生
 if ($response === false) {
     http_response_code(500);
     die("cURL Error: " . curl_error($ch));
 }
+curl_close($ch);
 
 // 使用DOMDocument解析HTML
 $dom = new DOMDocument();
@@ -46,9 +66,15 @@ foreach ($nodes as $node) {
 
 // 输出第一个符合条件的激活码
 if (!empty($activationCodes)) {
-    echo $activationCodes[0] . PHP_EOL;
+    $result = $activationCodes[0] . PHP_EOL;
+    // 仅在找到有效激活码时才缓存
+    if (function_exists('apcu_store')) {
+        apcu_store($cacheKey, $result, $cacheTTL);
+    }
 } else {
-    echo "No valid activation code found." . PHP_EOL;
+    $result = "No valid activation code found." . PHP_EOL;
 }
+
+echo $result;
 
 ?>

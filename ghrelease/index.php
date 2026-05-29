@@ -82,12 +82,19 @@ $ch = curl_init($api_url);
 // 设置 cURL 选项
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'User-Agent: MyGitHubAPI', // 设置 User-Agent
+    'User-Agent: MyGitHubAPI',
     'Accept: application/vnd.github.v3+json',
 ]);
 
-// 发起请求
-$response = curl_exec($ch);
+// 发起请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 
 // 检查是否有错误
 if (curl_errno($ch)) {
@@ -95,7 +102,6 @@ if (curl_errno($ch)) {
     die('cURL 请求出错：' . curl_error($ch));
 }
 
-// 关闭 cURL
 curl_close($ch);
 
 // 解析 JSON 响应
@@ -126,7 +132,7 @@ if (!empty($matching_assets)) {
 }
 
 // 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && $downloadUrl !== false) {
+if (function_exists('apcu_store') && !empty($downloadUrl)) {
     apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
 }
 

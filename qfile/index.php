@@ -54,6 +54,12 @@ $link = getLink($requestParams['batchId']);
 if (empty($link)) {
     sendErrorResponse('获取下载链接失败', 500);
 }
+
+// 将新数据存入 APCu 缓存
+if ($isApcuEnabled) {
+    apcu_store($cacheKey, $link, CACHE_TTL);
+}
+
 processApiResponse($link, $requestParams['type']);
 exit;
 
@@ -132,7 +138,7 @@ function getLink(string $batchId): string
             'Content-Type: application/json',
             'Accept-Language: zh-CN,zh;q=0.9',
             'Origin: https://qfile.qq.com',
-            'Referer: https://qfile.qq.com', // 'https://qfile.qq.com/q/xxxxxx'
+            'Referer: https://qfile.qq.com',
             'Sec-Fetch-Dest: empty',
             'Sec-Fetch-Mode: cors',
             'Sec-Fetch-Site: same-origin',
@@ -142,7 +148,16 @@ function getLink(string $batchId): string
             'x-oidb: {"uint32_command":"0x9248", "uint32_service_type":"4"}',
         ],
     ]);
-    $response = curl_exec($curl);
+
+    // 发起请求（带重试）
+    $maxRetries = 2;
+    $retryDelay = 300;
+    $response = false;
+    for ($i = 0; $i <= $maxRetries; $i++) {
+        $response = curl_exec($curl);
+        if ($response !== false && curl_errno($curl) === 0) break;
+        if ($i < $maxRetries) usleep($retryDelay * 1000);
+    }
     $err = curl_error($curl);
     if (PHP_VERSION_ID < 80500) {
         curl_close($curl);

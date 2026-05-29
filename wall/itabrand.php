@@ -1,4 +1,17 @@
 <?php
+// APCU 缓存配置
+$cacheKey = 'itabrand_wallpaper'; // 唯一缓存键名
+$cacheTTL = 300; // 缓存有效期 5 分钟（秒）
+
+// 尝试从 APCu 读取缓存
+if (function_exists('apcu_enabled') && apcu_enabled()) {
+    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    $downloadUrl = apcu_fetch($cacheKey);
+    if ($downloadUrl !== false) {
+        header("Location: $downloadUrl");
+        exit;
+    }
+}
 
 // 目标网页 URL
 $url = "https://api.codelife.cc/wallpaper/random?lang=cn";
@@ -12,8 +25,15 @@ curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-// 发起请求
-$response = curl_exec($ch);
+// 发起请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 
 // 检查是否有错误
 if (curl_errno($ch)) {
@@ -21,7 +41,6 @@ if (curl_errno($ch)) {
     die('cURL 请求出错：' . curl_error($ch));
 }
 
-// 关闭 cURL
 curl_close($ch);
 
 // 解析 JSON 响应
@@ -39,6 +58,11 @@ $parsedUrl = parse_url($jsonResponse['data']);
 
 // 重新组合URL，排除查询部分
 $downloadUrl = $parsedUrl['scheme'] . '://' . $parsedUrl['host'] . $parsedUrl['path'];
+
+// 将新数据存入 APCu 缓存
+if (function_exists('apcu_store') && !empty($downloadUrl)) {
+    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
+}
 
 // 跳转到下载地址
 if (!empty($downloadUrl)) {
