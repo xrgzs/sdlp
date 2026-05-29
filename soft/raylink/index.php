@@ -6,9 +6,16 @@ $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 // 支持路径参数 /raylink/lite
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';
 $pathSegment = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
 // 判断是否是精简版
 $platform = (isset($_GET['lite']) || $pathSegment === 'lite') ? 5 : 0;
+
+// 参数校验
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
+}
 
 // 生成缓存键
 $cacheKey = $cacheKeyPrefix . $platform;
@@ -64,11 +71,21 @@ if (function_exists('apcu_store') && !empty($downloadUrl)) {
     apcu_store($cacheKey, $downloadUrl, $cacheTTL);
 }
 
-// 跳转到下载地址
-if (!empty($downloadUrl)) {
-    header("Location: $downloadUrl");
-} else {
+// 返回响应
+if (empty($downloadUrl)) {
     http_response_code(404);
     die('未找到下载链接。');
 }
+
+if ($type === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'code' => 200,
+        'msg'  => '解析成功',
+        'downUrl' => $downloadUrl
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+header('Location: ' . $downloadUrl, true, 302);
 exit;

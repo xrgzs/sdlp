@@ -1,17 +1,23 @@
 <?php
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
+}
 
 if (isset($_GET['url'])) {
-    $inputurl = filter_var($_GET['url'], FILTER_VALIDATE_URL); // 验证URL有效性
+    $inputurl = filter_var($_GET['url'], FILTER_VALIDATE_URL);
 
     if ($inputurl === false) {
-        http_response_code(500);
+        http_response_code(400);
         echo "Error: 无效的URL";
         exit;
     }
 
     // APCU 缓存配置
-    $cacheKeyPrefix = 'mediafire_'; // 唯一缓存键名前缀
-    $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
+    $cacheKeyPrefix = 'mediafire_';
+    $cacheTTL = 600;
 
     // 生成缓存键
     $cacheKey = $cacheKeyPrefix . md5($inputurl);
@@ -21,8 +27,12 @@ if (isset($_GET['url'])) {
         header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
         $downloadUrl = apcu_fetch($cacheKey);
         if ($downloadUrl !== false) {
-            http_response_code(302);
-            header("Location: " . $downloadUrl);
+            if ($type === 'json') {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['code' => 200, 'msg' => '解析成功', 'downUrl' => $downloadUrl], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                exit;
+            }
+            header('Location: ' . $downloadUrl, true, 302);
             exit;
         }
     }
@@ -72,16 +82,20 @@ if (isset($_GET['url'])) {
         if (function_exists('apcu_store') && !empty($downloadUrl)) {
             apcu_store($cacheKey, $downloadUrl, $cacheTTL);
         }
-        http_response_code(302);
-        header("Location: " . $downloadUrl);
+        if ($type === 'json') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['code' => 200, 'msg' => '解析成功', 'downUrl' => $downloadUrl], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            exit;
+        }
+        header('Location: ' . $downloadUrl, true, 302);
         exit;
     } else {
-		http_response_code(404);
+        http_response_code(404);
         echo "Error: 无法找到有效的下载链接";
         exit;
     }
 } else {
-    http_response_code(500);
+    http_response_code(400);
     echo "Error: 未提供URL";
     exit;
 }

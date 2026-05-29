@@ -4,10 +4,11 @@ $cacheKeyPrefix = 'scoop'; // 唯一缓存键名
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
 // 输入参数
-$name = isset($_GET['name']) ? $_GET['name'] : ''; // 获取传入的 name 参数
-$bucket = isset($_GET['bucket']) ? $_GET['bucket'] : 'ScoopInstaller/Main'; // 获取传入的 bucket 参数
-$branch = isset($_GET['branch']) ? $_GET['branch'] : 'master'; // 获取传入的 branch 参数
-$arch = isset($_GET['arch']) ? $_GET['arch'] : '64bit'; // 获取传入的 arch 参数
+$name = isset($_GET['name']) ? $_GET['name'] : '';
+$bucket = isset($_GET['bucket']) ? $_GET['bucket'] : 'ScoopInstaller/Main';
+$branch = isset($_GET['branch']) ? $_GET['branch'] : 'master';
+$arch = isset($_GET['arch']) ? $_GET['arch'] : '64bit';
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
 // 检查参数
 if (!is_string($name) || empty($name) || strlen($name) > 50) {
@@ -25,6 +26,10 @@ if (!is_string($branch) || strlen($branch) > 10) {
 if (!in_array($arch, ['32bit', '64bit', 'arm64'], true)) {
     http_response_code(400);
     die('输入 arch 参数不合法！');
+}
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
 }
 
 // 进一步过滤和转义输入，防止注入
@@ -123,14 +128,24 @@ if (strpos($downloadUrl, 'https://github.com/') === 0) {
 
 // 将新数据存入 APCu 缓存
 if (function_exists('apcu_store') && !empty($downloadUrl)) {
-    apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
+    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
 }
 
-// 跳转到下载地址
-if (!empty($downloadUrl)) {
-    header("Location: $downloadUrl");
-} else {
+// 返回响应
+if (empty($downloadUrl)) {
     http_response_code(404);
     die('未找到下载链接。');
 }
+
+if ($type === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'code' => 200,
+        'msg'  => '解析成功',
+        'downUrl' => $downloadUrl
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+header('Location: ' . $downloadUrl, true, 302);
 exit;

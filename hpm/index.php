@@ -1,9 +1,10 @@
 <?php
 // APCU 缓存配置
-$cacheKey = 'hpm_list'; // 唯一缓存键名
-$cacheTTL = 600; // 缓存有效期 10 分钟（秒）
+$cacheKey = 'hpm_list';
+$cacheTTL = 600;
 
 $name = filter_input(INPUT_GET, 'name', FILTER_SANITIZE_STRING);
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
 // 检查参数
 if (empty($name)) {
@@ -13,6 +14,10 @@ if (empty($name)) {
 if (strlen($name) > 100) {
     http_response_code(400);
     die('输入参数过长！');
+}
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
 }
 
 // 尝试从 APCu 读取缓存
@@ -81,11 +86,23 @@ usort($downloadItems, 'compareModified');
 $newestItem = end($downloadItems);
 
 // 输出最新的modified的下载地址
-if (!empty($newestItem['link'])) {
-    $url = $newestItem['link'];
-    header("Location: $url");
-} else {
+if (empty($newestItem['link'])) {
     http_response_code(404);
     die('未找到下载链接。');
 }
+
+$downloadUrl = $newestItem['link'];
+
+if ($type === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'code' => 200,
+        'msg'  => '解析成功',
+        'name' => $newestItem['name'] ?? '',
+        'downUrl' => $downloadUrl
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+header('Location: ' . $downloadUrl, true, 302);
 exit;
