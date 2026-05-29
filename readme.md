@@ -60,7 +60,7 @@
 
 | 接口 | 说明 |
 |------|------|
-| `/wall/` | 自动切换（随机选择以下接口） |
+| `/wall/` | 自动切换（随机选择 wetab/itab/bingrand） |
 | `/wall/bingtoday.php` | 必应每日一图 |
 | `/wall/bingrand.php` | 必应随机图片 |
 | `/wall/itab.php` | iTab 标签页壁纸 |
@@ -70,7 +70,7 @@
 
 ## 📋 通用参数
 
-以下参数适用于所有解析类接口：
+以下参数适用于所有解析类接口（软件商店跳转、云盘解析等）：
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
@@ -78,6 +78,8 @@
 
 - `type=down` 或不传：直接 302 跳转到下载链接
 - `type=json`：返回 JSON 格式响应
+
+> 💡 软件直链下载接口（火绒、微信输入法等固定链接）始终直接 302 跳转，不支持 `type` 参数。
 
 示例：
 ```
@@ -126,30 +128,33 @@ server {
     root /www/sites/your-domain/index/sdlp;
     index index.php index.html;
 
-    location ~ \.php$ {
+    location ~ \.php(/|$) {
         fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $path_info;
         include fastcgi_params;
     }
 }
 ```
 
+> 💡 `\.php(/|$)` 和 `PATH_INFO` 配置是简洁路径格式（如 `/360baoku/104693057`）正常工作的前提。
+
 ## 📖 接口详细说明
 
 ### 向日葵
 
-支持多种版本，通过 `name` 和 `x64` 参数控制：
+支持多种版本，通过 `name` 和 `x64` 参数控制（`x64` 参数存在即生效，不传则为 32 位）：
 
 | name | x64 | 说明 |
 |------|-----|------|
-| `SUNLOGIN_X_WINDOWS` | 否 | 个人版 32 位 |
-| `SUNLOGIN_X_WINDOWS` | 是 | 个人版 64 位 |
-| `SUNLOGIN_WINDOWS` | 否 | 企业版控制端 32 位 |
-| `SUNLOGIN_WINDOWS` | 是 | 企业版控制端 64 位 |
-| `SLRC_WINDOWS_ENT` | 否 | 企业版客户端 32 位 |
-| `SLRC_WINDOWS_ENT` | 是 | 企业版客户端 64 位 |
-| `SL_WINDOWS_LITE` | 否 | SOS 版 32 位 |
-| `SL_WINDOWS_LITE` | 是 | SOS 版 64 位 |
+| `SUNLOGIN_X_WINDOWS` | 不传 | 个人版 32 位 |
+| `SUNLOGIN_X_WINDOWS` | 传任意值 | 个人版 64 位 |
+| `SUNLOGIN_WINDOWS` | 不传 | 企业版控制端 32 位 |
+| `SUNLOGIN_WINDOWS` | 传任意值 | 企业版控制端 64 位 |
+| `SLRC_WINDOWS_ENT` | 不传 | 企业版客户端 32 位 |
+| `SLRC_WINDOWS_ENT` | 传任意值 | 企业版客户端 64 位 |
+| `SL_WINDOWS_LITE` | 不传 | SOS 版 32 位 |
+| `SL_WINDOWS_LITE` | 传任意值 | SOS 版 64 位 |
 
 ```
 /soft/sunlogin?name=SUNLOGIN_X_WINDOWS&x64=1
@@ -201,6 +206,8 @@ server {
 | `branch` | 分支 | `master` |
 | `arch` | 架构 | `64bit` |
 
+> ⚠️ `bucket` 参数仅支持白名单内的存储库，包括 `ScoopInstaller/Main`、`ScoopInstaller/Extras`、`ScoopInstaller/Games`、`xrgzs/sdoog` 等。不在白名单中的 bucket 将返回 404。
+
 ```
 /scoop/?name=aria2
 /scoop/?name=ecloud&bucket=xrgzs/sdoog&branch=master
@@ -228,7 +235,6 @@ server {
 |------|------|------|
 | `url` | 蓝奏云链接 | 是 |
 | `pwd` | 提取密码 | 否 |
-| `type` | 设为 `json` 返回JSON | 否 |
 
 ```
 /lanzou/?url=https://www.lanzoup.com/xxxxx&type=json
@@ -345,10 +351,12 @@ server {
 
 | 接口类型 | 缓存时间 | 说明 |
 |----------|----------|------|
-| 软件直链 | 10 分钟 | 下载链接相对稳定 |
-| 软件商店 | 10 分钟 | 应用版本更新不频繁 |
+| 软件直链（火绒等） | 10 分钟 | 下载链接相对稳定 |
+| 连连控（asklink） | 6 小时 | 链接变化不频繁 |
+| 软件商店（360/联想/QQ/奇安信） | 10 分钟 | 应用版本更新不频繁 |
+| Scoop / HPM | 10 分钟 | 包版本更新不频繁 |
 | GitHub Release | 10 分钟 | 避免触发 API 限制 |
-| 蓝奏云 | 10 分钟 | 文件链接相对稳定 |
+| 云盘解析（蓝奏云/飞机盘/i蓝奏等） | 10 分钟 | 文件链接相对稳定 |
 | 壁纸（必应） | 12 小时 | 每日更新 |
 | 壁纸（其他） | 5 分钟 | 保持随机性 |
 | 激活码 | 1 小时 | 变化不频繁 |

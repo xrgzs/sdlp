@@ -17,6 +17,7 @@ if (!in_array($type, ['down', 'json'])) {
 }
 
 // 获取参数 x64
+    $args = '';
 if (isset($_GET['x64'])) {
     $args = 'x64=1';
 }
@@ -29,8 +30,12 @@ if (function_exists('apcu_enabled') && apcu_enabled()) {
     header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
     $downloadUrl = apcu_fetch($cacheKey);
     if ($downloadUrl !== false) {
-        // 命中缓存，直接重定向
-        header("Location: $downloadUrl");
+        if ($type === 'json') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['code' => 200, 'msg' => '解析成功', 'downUrl' => $downloadUrl], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            exit;
+        }
+        header('Location: ' . $downloadUrl, true, 302);
         exit;
     }
 }
