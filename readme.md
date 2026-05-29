@@ -23,16 +23,16 @@
 
 ### 软件直链下载
 
-| 接口 | 说明 | 示例 |
-|------|------|------|
-| `/soft/huorong` | 火绒安全软件 | [直接访问](/soft/huorong) |
-| `/soft/wetype` | 微信输入法 | [直接访问](/soft/wetype) |
-| `/soft/baidupinyin` | 百度拼音输入法 | [直接访问](/soft/baidupinyin) |
-| `/soft/sunlogin` | 向日葵远程控制 | [查看参数](#向日葵) |
-| `/soft/raylink` | RayLink 远程控制 | [直接访问](/soft/raylink) |
-| `/soft/asklink` | 连连控 | [直接访问](/soft/asklink) |
-| `/soft/ecloud` | 天翼网盘客户端 | [直接访问](/soft/ecloud) |
-| `/soft/filecxx/code` | FileCentro 激活码 | [直接访问](/soft/filecxx/code) |
+| 接口 | 说明 |
+|------|------|
+| `/soft/huorong` | 火绒安全软件 |
+| `/soft/wetype` | 微信输入法 |
+| `/soft/baidupinyin` | 百度拼音输入法 |
+| `/soft/sunlogin` | 向日葵远程控制 |
+| `/soft/raylink` | RayLink 远程控制 |
+| `/soft/asklink` | 连连控 |
+| `/soft/ecloud` | 天翼网盘客户端 |
+| `/soft/filecxx/code` | FileCentro 激活码 |
 
 ### 软件商店跳转
 
