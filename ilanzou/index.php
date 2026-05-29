@@ -70,7 +70,7 @@ $apiHeaders = [
     'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
     'Cache-Control: no-cache',
     'Connection: keep-alive',
-    'Content-Type: application/json',
+    'Content-Length: 0',
     'DNT: 1',
     'Host: api.ilanzou.com',
     'Origin: https://www.ilanzou.com/',
@@ -132,8 +132,15 @@ if ($fileItem === null) {
     sendErrorResponse('文件列表为空', 500);
 }
 
-// fileIds 在 list[0] 级别
+// 检查是否为目录分享
+$fileType = $fileItem['fileType'] ?? 1;
+if ($fileType == 2) {
+    sendErrorResponse('该链接为目录分享，暂不支持', 400);
+}
+
+// fileIds 和 userId 在 list[0] 级别
 $fileIds = $fileItem['fileIds'] ?? '';
+$userId = $fileItem['userId'] ?? '';
 if (empty($fileIds)) {
     sendErrorResponse('未获取到文件ID', 500);
 }
@@ -142,9 +149,6 @@ if (empty($fileIds)) {
 $fileList = $fileItem['fileList'] ?? [];
 $fileName = !empty($fileList) ? ($fileList[0]['fileName'] ?? '') : '';
 $fileSize = !empty($fileList) ? ($fileList[0]['fileSize'] ?? 0) : 0; // KB
-
-// userId 在无认证模式下为 null
-$userId = null;
 
 // 3. 生成加密参数获取下载链接
 $timestamp2 = (string)(int)(microtime(true) * 1000);
@@ -308,7 +312,6 @@ function getRedirectUrl(string $url, array $headers = []): string
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_HEADER         => true,
-        CURLOPT_NOBODY         => true,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_SSL_VERIFYPEER => false,
