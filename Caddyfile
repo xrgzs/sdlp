@@ -1,9 +1,15 @@
 {
-    frankenphp
+    {$CADDY_GLOBAL_OPTIONS}
+
+    frankenphp {
+        {$FRANKENPHP_CONFIG}
+    }
 }
 
-:80 {
-    root * /app/public
+{$SERVER_NAME:localhost} {
+    {$CADDY_SERVER_EXTRA_DIRECTIVES}
+
+    root * /app/{$SERVER_ROOT:public/}
     encode zstd gzip
 
     # PATH_INFO rewrite for simple path format
