@@ -65,8 +65,8 @@ if (strpos($filePageContent, "function down_p(){") !== false) {
     handlePublicFile($filePageContent, $parsedUrl, $fileInfo);
 }
 
-// 存储文件信息到缓存（如果APCu可用）
-if ($isApcuEnabled) {
+// 存储文件信息到缓存（验证数据有效性后再缓存）
+if ($isApcuEnabled && !empty($fileInfo['downUrl'])) {
     apcu_store($cacheKey, $fileInfo, CACHE_TTL);
 }
 // 处理API响应
@@ -223,7 +223,7 @@ function processApiResponse(array $fileInfo, string $requestType): void
 /********************** 网络请求相关 **********************/
 
 /**
- * 执行GET请求
+ * 执行GET请求（带重试）
  */
 function fetchPageContent(string $url): string
 {
@@ -238,13 +238,20 @@ function fetchPageContent(string $url): string
             'CLIENT-IP: ' . generateRandomIP()
         ]
     ]);
-    $response = curl_exec($ch);
+    $maxRetries = 2;
+    $retryDelay = 300;
+    $response = false;
+    for ($i = 0; $i <= $maxRetries; $i++) {
+        $response = curl_exec($ch);
+        if ($response !== false && curl_errno($ch) === 0) break;
+        if ($i < $maxRetries) usleep($retryDelay * 1000);
+    }
     curl_close($ch);
     return $response;
 }
 
 /**
- * 执行POST请求
+ * 执行POST请求（带重试）
  */
 function postRequest(array $data, string $url, string $referer = ''): string
 {
@@ -261,13 +268,20 @@ function postRequest(array $data, string $url, string $referer = ''): string
             'CLIENT-IP: ' . generateRandomIP()
         ]
     ]);
-    $response = curl_exec($ch);
+    $maxRetries = 2;
+    $retryDelay = 300;
+    $response = false;
+    for ($i = 0; $i <= $maxRetries; $i++) {
+        $response = curl_exec($ch);
+        if ($response !== false && curl_errno($ch) === 0) break;
+        if ($i < $maxRetries) usleep($retryDelay * 1000);
+    }
     curl_close($ch);
     return $response;
 }
 
 /**
- * 获取重定向URL
+ * 获取重定向URL（带重试）
  */
 function getRedirectUrl(string $url): string
 {
@@ -287,10 +301,15 @@ function getRedirectUrl(string $url): string
             'accept-language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
             'priority: u=0, i',
             'upgrade-insecure-requests: 1',
-            'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
         ]
     ]);
-    curl_exec($ch);
+    $maxRetries = 2;
+    $retryDelay = 300;
+    for ($i = 0; $i <= $maxRetries; $i++) {
+        curl_exec($ch);
+        if (curl_errno($ch) === 0) break;
+        if ($i < $maxRetries) usleep($retryDelay * 1000);
+    }
     $url = curl_getinfo($ch);
     curl_close($ch);
     return $url["redirect_url"];

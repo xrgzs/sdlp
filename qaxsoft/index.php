@@ -46,7 +46,7 @@ function uuid()
 $HuFuToken = uuid();
 header("ReqSendID: " . $HuFuToken);
 
-// 发起请求
+// 发起请求（带重试）
 $ch = curl_init();
 curl_setopt_array($ch, array(
     CURLOPT_URL => 'https://ts.qianxin.com/saas/software/distribution/v1/client/software/download',
@@ -60,14 +60,21 @@ curl_setopt_array($ch, array(
         'Content-Type: application/json'
     ),
 ));
-$response = curl_exec($ch);
-curl_close($ch);
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 
 // 检查是否有错误
 if (curl_errno($ch)) {
     http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
+curl_close($ch);
 
 // 解析 JSON 响应
 $jsonResponse = json_decode($response, true);
@@ -80,7 +87,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 $downloadUrl = $jsonResponse['data']['url'];
 
 // 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && $downloadUrl !== false) {
+if (function_exists('apcu_store') && !empty($downloadUrl)) {
     apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
 }
 

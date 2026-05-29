@@ -1,4 +1,8 @@
 <?php
+// APCU 缓存配置
+$cacheKeyPrefix = 'sunlogin'; // 唯一缓存键名前缀
+$cacheTTL = 600; // 缓存有效期 10 分钟（秒）
+
 // 获取参数 name
 $name = $_GET['name'];
 if (empty($name)) {
@@ -10,6 +14,20 @@ if (isset($_GET['x64'])) {
     $args = 'x64=1';
 }
 
+// 生成缓存键
+$cacheKey = $cacheKeyPrefix . $name . (isset($args) ? '_x64' : '');
+
+// 尝试从 APCu 读取缓存
+if (function_exists('apcu_enabled') && apcu_enabled()) {
+    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    $downloadUrl = apcu_fetch($cacheKey);
+    if ($downloadUrl !== false) {
+        // 命中缓存，直接重定向
+        header("Location: $downloadUrl");
+        exit;
+    }
+}
+
 // 目标网页 URL 参数
 $url = "https://client-api.oray.com/softwares/${name}?${args}";
 
@@ -19,8 +37,15 @@ curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_REFERER, "https://sunlogin.oray.com/");
 
-// 发起 GET 请求
-$response = curl_exec($ch);
+// 发起请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 
 // 检查是否有错误
 if (curl_errno($ch)) {
@@ -28,7 +53,6 @@ if (curl_errno($ch)) {
     die('cURL 请求出错：' . curl_error($ch));
 }
 
-// 关闭 cURL
 curl_close($ch);
 
 // 解析 JSON 响应
@@ -40,6 +64,12 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 
 // 获取下载地址
 $downloadUrl = str_replace('dw.oray.com', 'down.oray.com', $jsonResponse['downloadurl']);
+
+// 将新数据存入 APCu 缓存
+if (function_exists('apcu_store') && !empty($downloadUrl)) {
+    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
+}
+
 // 跳转到下载地址
 if (!empty($downloadUrl)) {
     header("Location: $downloadUrl");

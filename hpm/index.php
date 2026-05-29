@@ -1,4 +1,8 @@
 <?php
+// APCU 缓存配置
+$cacheKey = 'hpm_list'; // 唯一缓存键名
+$cacheTTL = 600; // 缓存有效期 10 分钟（秒）
+
 $name = filter_input(INPUT_GET, 'name', FILTER_SANITIZE_STRING);
 
 // 检查参数
@@ -6,22 +10,39 @@ if (empty($name)) {
     http_response_code(400);
     die('未定义必需参数 name !');
 }
-if (strlen($name) > 20) {
+if (strlen($name) > 100) {
     http_response_code(400);
     die('输入参数过长！');
 }
 
-// 发起 GET 请求
+// 尝试从 APCu 读取缓存
+if (function_exists('apcu_enabled') && apcu_enabled()) {
+    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    $jsonResponse = apcu_fetch($cacheKey);
+    if ($jsonResponse !== false) {
+        // 缓存命中，跳过 API 请求
+        goto parse_data;
+    }
+}
+
+// 发起请求（带重试）
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, "https://api.hotpe.top/API/HotPE/GetHPMList/");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-$response = curl_exec($ch);
-curl_close($ch);
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
 // 检查是否有错误
 if (curl_errno($ch)) {
     http_response_code(500);
     die('cURL 请求出错：' . curl_error($ch));
 }
+curl_close($ch);
 
 // 解析 JSON 响应
 $jsonResponse = json_decode($response, true);
@@ -29,6 +50,13 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(500);
     die('JSON 解析失败: ' . json_last_error_msg());
 }
+
+// 验证数据完整性后再缓存
+if (function_exists('apcu_store') && isset($jsonResponse['data'])) {
+    apcu_store($cacheKey, $jsonResponse, $cacheTTL);
+}
+
+parse_data:
 
 // 遍历 data 数组，获取所有匹配名称的项
 $downloadItems = [];
