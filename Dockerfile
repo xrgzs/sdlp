@@ -12,4 +12,5 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
     echo "cgi.fix_pathinfo = 0" >> "$PHP_INI_DIR/conf.d/0_security.ini" && \
     rm -rf /app/public/index.php
 
+COPY Caddyfile /etc/caddy/Caddyfile
 COPY . /app/public
