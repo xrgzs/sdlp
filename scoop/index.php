@@ -47,7 +47,6 @@ if (!in_array(strtolower($bucket), [
     'scoopinstaller/nirsoft',
     'scoopinstaller/niheaven/scoop-sysinternals',
     'scoopinstaller/scoopinstaller/php',
-    'scoopinstaller/scoopinstaller/php',
     'matthewjberger/scoop-nerd-fonts',
     'scoopinstaller/nonportable',
     'scoopinstaller/java',
