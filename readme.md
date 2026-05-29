@@ -45,7 +45,7 @@
 | `/hpm/` | HotPE 模块 | `name` |
 | `/scoop/` | Scoop 包管理器 | `name` `bucket` `branch` `arch` |
 | `/ghrelease` | GitHub Release | `repo` `tag` `search` `filter` `mirror` |
-| `/lanzou/` | 蓝奏云解析 | `url` `pwd` `type` |
+| `/lanzou/` | 蓝奏云解析 | `url` `pwd` |
 | `/mediafire/` | MediaFire 解析 | `url` |
 | `/qfile/` | QQ 文件转发 | `batchId` |
 | `/guangya/` | 光鸭云盘解析 | `url` |
@@ -129,9 +129,10 @@ server {
     index index.php index.html;
 
     location ~ \.php(/|$) {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
         fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_param PATH_INFO $path_info;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
         include fastcgi_params;
     }
 }
