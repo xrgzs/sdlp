@@ -262,6 +262,7 @@ server {
 
 ```
 /guangya/?url=https://www.guangyapan.com/s/xxxxxx
+/guangya/xxxxxx                  # 简洁格式
 ```
 
 ### 飞机盘
@@ -271,6 +272,7 @@ server {
 ```
 /feijipan/?url=https://www.feijipan.com/s/xxxxxx
 /feijipan/?url=https://www.feijipan.com/s/xxxxxx&pwd=1234
+/feijipan/xxxxxx                 # 简洁格式
 ```
 
 ### i蓝奏
@@ -280,6 +282,7 @@ server {
 ```
 /ilanzou/?url=https://www.ilanzou.com/s/xxxxxx
 /ilanzou/?url=https://www.ilanzou.com/s/xxxxxx&pwd=1234
+/ilanzou/xxxxxx                  # 简洁格式
 ```
 
 ### 联想云盘
@@ -289,6 +292,7 @@ server {
 ```
 /lecloud/?url=https://lecloud.lenovo.com/share/xxxxxx
 /lecloud/?url=https://lecloud.lenovo.com/share/xxxxxx&pwd=1234
+/lecloud/xxxxxx                  # 简洁格式
 ```
 
 ### 金山文档
@@ -297,6 +301,7 @@ server {
 
 ```
 /wps/?url=https://www.kdocs.cn/l/xxxxxx
+/wps/xxxxxx                      # 简洁格式
 ```
 
 ### QQ邮箱文件
@@ -304,7 +309,7 @@ server {
 解析 QQ 邮箱文件中转站链接：
 
 ```
-/qqmail/?url=https://mail.qq.com/xxxxxx
+/qqmail/?url=https://wx.mail.qq.com/xxxxxx&k=xxxxxx
 ```
 
 ### 文叔叔
@@ -314,6 +319,7 @@ server {
 ```
 /wenshushu/?url=https://www.wenshushu.cn/f/xxxxxx
 /wenshushu/?url=https://www.wenshushu.cn/f/xxxxxx&pwd=1234
+/wenshushu/xxxxxx                # 简洁格式
 ```
 
 ## ⚡ 缓存机制
