@@ -11,24 +11,14 @@ const CACHE_TTL = 600;
 
 // 获取请求参数
 $url = filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '';
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? '';
 
 // 参数校验
 if (empty($url)) {
     sendErrorResponse('请输入URL', 400);
 }
-
-// 构建缓存 key
-$cacheKey = CACHE_PREFIX . md5($url);
-
-// 尝试从 APCu 读取缓存
-$isApcuEnabled = function_exists('apcu_enabled') && apcu_enabled();
-if ($isApcuEnabled) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $cachedData = apcu_fetch($cacheKey);
-    if ($cachedData !== false) {
-        echo $cachedData;
-        exit;
-    }
+if (!in_array($type, ['down', 'json', ''])) {
+    sendErrorResponse('TYPE不合法', 400);
 }
 
 // 从 URL 中提取参数
@@ -41,6 +31,27 @@ if (isset($parsedUrl['query'])) {
 $k = $queryParams['k'] ?? '';
 $key = $queryParams['key'] ?? '';
 $code = $queryParams['code'] ?? '';
+
+// 构建缓存 key（使用 k 参数或完整 URL 的 md5）
+$cacheKey = CACHE_PREFIX . md5(!empty($k) ? $k : $url);
+
+// 尝试从 APCu 读取缓存
+$isApcuEnabled = function_exists('apcu_enabled') && apcu_enabled();
+if ($isApcuEnabled) {
+    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
+    $cachedData = apcu_fetch($cacheKey);
+    if ($cachedData !== false) {
+        if ($type === 'down') {
+            $cachedJson = json_decode($cachedData, true);
+            if (!empty($cachedJson['downUrl'])) {
+                header('Location: ' . $cachedJson['downUrl'], true, 302);
+                exit;
+            }
+        }
+        echo $cachedData;
+        exit;
+    }
+}
 
 // 如果URL中有key和code，直接拼接下载链接
 if (!empty($key) && !empty($code)) {
@@ -57,6 +68,13 @@ if (!empty($key) && !empty($code)) {
     if ($isApcuEnabled && !empty($downUrl)) {
         apcu_store($cacheKey, $result, CACHE_TTL);
     }
+
+    // 302跳转
+    if ($type === 'down') {
+        header('Location: ' . $downUrl, true, 302);
+        exit;
+    }
+
     echo $result;
     exit;
 }
@@ -139,6 +157,12 @@ $result = json_encode([
 
 if ($isApcuEnabled && !empty($downUrl)) {
     apcu_store($cacheKey, $result, CACHE_TTL);
+}
+
+// 302跳转
+if ($type === 'down') {
+    header('Location: ' . $downUrl, true, 302);
+    exit;
 }
 
 echo $result;
