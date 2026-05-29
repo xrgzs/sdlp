@@ -38,23 +38,19 @@ if (isset($parsedUrl['query'])) {
     parse_str($parsedUrl['query'], $queryParams);
 }
 
-$key = $queryParams['k'] ?? '';
+$k = $queryParams['k'] ?? '';
+$key = $queryParams['key'] ?? '';
 $code = $queryParams['code'] ?? '';
-$func = $queryParams['func'] ?? '4';
 
 // 如果URL中有key和code，直接拼接下载链接
 if (!empty($key) && !empty($code)) {
-    $downUrl = 'https://iwx.mail.qq.com/ftn/download?func=' . $func . '&key=' . urlencode($key) . '&code=' . urlencode($code);
-
-    // 尝试获取文件信息（可选，通过请求下载链接的HEAD获取）
-    $name = '';
-    $filesize = '';
+    $downUrl = 'https://wx.mail.qq.com/ftn/download?func=4&key=' . urlencode($key) . '&code=' . urlencode($code);
 
     $result = json_encode([
         'code'     => 200,
         'msg'      => '解析成功',
-        'name'     => $name,
-        'filesize' => $filesize,
+        'name'     => '',
+        'filesize' => '',
         'downUrl'  => $downUrl
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
@@ -65,38 +61,73 @@ if (!empty($key) && !empty($code)) {
     exit;
 }
 
-// 如果没有key和code，尝试请求页面提取变量（QQwTool方式）
-$html = curlGet($url);
-if (empty($html)) {
-    sendErrorResponse('请求分享页面失败', 500);
+// 如果没有k参数，无法解析
+if (empty($k)) {
+    sendErrorResponse('URL格式不正确，缺少k参数', 400);
 }
 
-// 用正则提取 JS 变量
-preg_match_all('/\s+var\s+(\w+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^;\r\n]*))/', $html, $varMatches, PREG_SET_ORDER);
+// 调用QQ邮箱API获取文件信息
+$apiUrl = 'https://wx.mail.qq.com/s';
+$postData = 'f=json&k=' . urlencode($k);
 
-$vars = [];
-foreach ($varMatches as $match) {
-    $varName = $match[1];
-    $value = $match[2] ?? $match[3] ?? $match[4] ?? '';
-    $vars[$varName] = $value;
+$ch = curl_init($apiUrl);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_SSL_VERIFYPEER => false,
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => $postData,
+    CURLOPT_TIMEOUT        => 15,
+    CURLOPT_HTTPHEADER     => [
+        'Content-Type: application/x-www-form-urlencoded',
+        'Accept: application/json, text/plain, */*',
+        'Referer: ' . $url,
+        'User-Agent: ' . DEFAULT_USER_AGENT
+    ]
+]);
+
+// 发起请求（带重试）
+$maxRetries = 2;
+$retryDelay = 300;
+$response = false;
+for ($i = 0; $i <= $maxRetries; $i++) {
+    $response = curl_exec($ch);
+    if ($response !== false && curl_errno($ch) === 0) break;
+    if ($i < $maxRetries) usleep($retryDelay * 1000);
+}
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode !== 200 || empty($response)) {
+    sendErrorResponse('获取文件信息失败', 500);
 }
 
-// 提取下载链接
-$downUrl = $vars['url'] ?? '';
-if (empty($downUrl)) {
-    sendErrorResponse('未获取到下载链接', 500);
+$data = json_decode($response, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    sendErrorResponse('解析响应失败', 500);
 }
 
-// 替换 \x26 为 &
-$downUrl = str_replace('\x26', '&', $downUrl);
+// 检查API返回状态
+if (!isset($data['head']['ret']) || $data['head']['ret'] !== 0) {
+    $msg = $data['head']['msg'] ?? '未知错误';
+    sendErrorResponse('API错误: ' . $msg, 500);
+}
+
+$body = $data['body'] ?? [];
+if (empty($body)) {
+    sendErrorResponse('文件信息为空', 500);
+}
 
 // 提取文件信息
-$name = $vars['filename'] ?? '';
-$filesize = $vars['filesize'] ?? '';
+$name = $body['name'] ?? '';
+$size = $body['size'] ?? 0;
+$downUrl = $body['url'] ?? '';
 
-if (empty($name)) {
-    sendErrorResponse('未获取到文件名', 500);
+if (empty($name) || empty($downUrl)) {
+    sendErrorResponse('未获取到文件信息', 500);
 }
+
+// 格式化文件大小
+$filesize = formatFileSize($size);
 
 $result = json_encode([
     'code'     => 200,
@@ -124,34 +155,14 @@ function sendErrorResponse(string $message, int $code = 400): void
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
-function curlGet(string $url): string
+function formatFileSize(int $bytes): string
 {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
-        CURLOPT_HTTPHEADER     => [
-            'X-FORWARDED-FOR: ' . generateRandomIP(),
-            'CLIENT-IP: ' . generateRandomIP(),
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
-        ]
-    ]);
-    $maxRetries = 2;
-    $retryDelay = 300;
-    $response = false;
-    for ($i = 0; $i <= $maxRetries; $i++) {
-        $response = curl_exec($ch);
-        if ($response !== false && curl_errno($ch) === 0) break;
-        if ($i < $maxRetries) usleep($retryDelay * 1000);
+    if ($bytes >= 1073741824) {
+        return round($bytes / 1073741824, 2) . ' GB';
+    } elseif ($bytes >= 1048576) {
+        return round($bytes / 1048576, 2) . ' MB';
+    } elseif ($bytes >= 1024) {
+        return round($bytes / 1024, 2) . ' KB';
     }
-    curl_close($ch);
-    return $response ?: '';
-}
-
-function generateRandomIP(): string
-{
-    return mt_rand(218, 222) . '.' . mt_rand(0, 255) . '.' . mt_rand(0, 255) . '.' . mt_rand(0, 255);
+    return $bytes . ' B';
 }
