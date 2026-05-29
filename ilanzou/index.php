@@ -121,6 +121,13 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     sendErrorResponse('分享信息解析失败', 500, $recommendResponse);
 }
 
+// 检查上游 API 业务状态码
+$upstreamCode = $recommendData['code'] ?? 0;
+if ($upstreamCode !== 200 && $upstreamCode !== 0) {
+    $upstreamMsg = $recommendData['msg'] ?? '未知错误';
+    sendErrorResponse('上游返回错误: ' . $upstreamMsg, 502, $recommendResponse);
+}
+
 // 解析文件列表
 $list = $recommendData['list'] ?? [];
 if (empty($list)) {
