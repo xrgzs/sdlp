@@ -97,7 +97,7 @@ if (!empty($pwd)) {
 $recommendUrl = 'https://api.ilanzou.com/unproved/recommend/list?' . $recommendParams;
 $recommendResponse = curlPost($recommendUrl, $apiHeaders);
 if (empty($recommendResponse)) {
-    sendErrorResponse('获取分享信息失败', 500);
+    sendErrorResponse('获取分享信息失败', 500, 'empty response');
 }
 
 // 检查是否需要 acw_sc__v2 反爬
@@ -112,19 +112,19 @@ if (strpos($recommendResponse, "var arg1='") !== false) {
     $cookieHeaders[] = 'Cookie: acw_sc__v2=' . $acwCookie;
     $recommendResponse = curlPost($recommendUrl, $cookieHeaders);
     if (empty($recommendResponse)) {
-        sendErrorResponse('获取分享信息失败(反爬重试)', 500);
+        sendErrorResponse('获取分享信息失败(反爬重试)', 500, 'empty response after acw retry');
     }
 }
 
 $recommendData = json_decode($recommendResponse, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
-    sendErrorResponse('分享信息解析失败', 500);
+    sendErrorResponse('分享信息解析失败', 500, $recommendResponse);
 }
 
 // 解析文件列表
 $list = $recommendData['list'] ?? [];
 if (empty($list)) {
-    sendErrorResponse('未找到文件或密码错误', 500);
+    sendErrorResponse('未找到文件或密码错误', 500, $recommendResponse);
 }
 
 $fileItem = $list[0] ?? null;
@@ -180,7 +180,7 @@ if (!empty($acwCookie)) {
 // 获取重定向 Location
 $downUrl = getRedirectUrl($redirectUrl, $redirectHeaders);
 if (empty($downUrl)) {
-    sendErrorResponse('未获取到下载链接', 500);
+    sendErrorResponse('未获取到下载链接', 500, 'redirect url: ' . $redirectUrl);
 }
 
 // 格式化文件大小
@@ -211,13 +211,17 @@ exit;
 
 /********************** 工具函数 **********************/
 
-function sendErrorResponse(string $message, int $code = 400): void
+function sendErrorResponse(string $message, int $code = 400, string $upstream = ''): void
 {
     http_response_code($code);
-    die(json_encode([
+    $response = [
         'code' => $code,
         'msg'  => $message
-    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    ];
+    if (!empty($upstream)) {
+        $response['upstream'] = $upstream;
+    }
+    die(json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
 function extractShareId(string $url): string
