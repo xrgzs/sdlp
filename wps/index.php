@@ -14,16 +14,24 @@ $url = filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '';
 $pwd = trim(strip_tags(filter_input(INPUT_GET, 'pwd'))) ?? '';
 $type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
+// 支持路径参数 /wps/{shareKey}
+$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+
 // 参数校验
-if (empty($url)) {
-    sendErrorResponse('请输入URL', 400);
+if (empty($url) && empty($pathId)) {
+    sendErrorResponse('请输入URL或shareKey', 400);
 }
 if (!in_array($type, ['down', 'json'])) {
     sendErrorResponse('TYPE不合法', 400);
 }
 
 // 提取 shareKey
-$shareKey = extractShareKey($url);
+if (!empty($pathId)) {
+    $shareKey = $pathId;
+} else {
+    $shareKey = extractShareKey($url);
+}
 if (empty($shareKey)) {
     sendErrorResponse('URL格式不正确', 400);
 }

@@ -13,16 +13,24 @@ const API_BASE = 'https://api.guangyapan.com';
 $url = filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '';
 $type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
+// 支持路径参数 /guangya/{shareId}
+$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+
 // 参数校验
-if (empty($url)) {
-    sendErrorResponse('请输入分享链接', 400);
+if (empty($url) && empty($pathId)) {
+    sendErrorResponse('请输入分享链接或shareId', 400);
 }
 if (!in_array($type, ['down', 'json'])) {
     sendErrorResponse('TYPE不合法', 400);
 }
 
 // 提取 shareId
-$shareId = extractShareId($url);
+if (!empty($pathId)) {
+    $shareId = $pathId;
+} else {
+    $shareId = extractShareId($url);
+}
 if (empty($shareId)) {
     sendErrorResponse('URL格式不正确', 400);
 }
