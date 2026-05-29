@@ -79,7 +79,7 @@
 - `type=down` 或不传：直接 302 跳转到下载链接
 - `type=json`：返回 JSON 格式响应
 
-> 💡 软件直链下载接口（火绒、微信输入法等固定链接）始终直接 302 跳转，不支持 `type` 参数。
+> 💡 固定链接接口（火绒、微信输入法、百度拼音、天翼网盘、连连控、FileCentro 激活码）始终直接 302 跳转，不支持 `type` 参数。向日葵和 RayLink 作为软件直链接口，仍支持 `type` 参数。
 
 示例：
 ```
@@ -206,7 +206,7 @@ server {
 | `branch` | 分支 | `master` |
 | `arch` | 架构 | `64bit` |
 
-> ⚠️ `bucket` 参数仅支持白名单内的存储库，包括 `ScoopInstaller/Main`、`ScoopInstaller/Extras`、`ScoopInstaller/Games`、`xrgzs/sdoog` 等。不在白名单中的 bucket 将返回 404。
+> ⚠️ `bucket` 参数仅支持白名单内的存储库，包括 `ScoopInstaller/Main`、`ScoopInstaller/Extras`、`ScoopInstaller/Versions`、`calinou/scoop-games`、`xrgzs/sdoog` 等。不在白名单中的 bucket 将返回 404。
 
 ```
 /scoop/?name=aria2
