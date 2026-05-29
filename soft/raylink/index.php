@@ -3,8 +3,12 @@
 $cacheKeyPrefix = 'raylink'; // 唯一缓存键名前缀
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
-// 目标网页 URL 参数
-$platform = isset($_GET['lite']) ? 5 : 0;
+// 支持路径参数 /raylink/lite
+$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+$pathSegment = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+
+// 判断是否是精简版
+$platform = (isset($_GET['lite']) || $pathSegment === 'lite') ? 5 : 0;
 
 // 生成缓存键
 $cacheKey = $cacheKeyPrefix . $platform;

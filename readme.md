@@ -140,11 +140,12 @@ server {
 
 ### RayLink
 
-默认下载完整版，添加 `?lite` 参数下载精简版：
+默认下载完整版，添加 `?lite` 参数或使用路径 `/raylink/lite` 下载精简版：
 
 ```
 /soft/raylink          # 完整版
 /soft/raylink?lite     # Lite 版
+/soft/raylink/lite     # Lite 版（简洁格式）
 ```
 
 ### 360 宝库
