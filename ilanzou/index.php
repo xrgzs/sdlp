@@ -67,6 +67,7 @@ $commonParams = 'devType=6&devModel=Chrome&uuid=' . $uuid . '&extra=2&timestamp=
 // API 请求头（匹配 Java IzTool）
 $apiHeaders = [
     'Accept: application/json, text/plain, */*',
+    'Accept-Encoding: gzip, deflate',
     'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
     'Cache-Control: no-cache',
     'Connection: keep-alive',
@@ -78,11 +79,11 @@ $apiHeaders = [
     'Referer: https://www.ilanzou.com/',
     'Sec-Fetch-Dest: empty',
     'Sec-Fetch-Mode: cors',
-    'Sec-Fetch-Site: same-site',
+    'Sec-Fetch-Site: cross-site',
     'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
     'sec-ch-ua-mobile: ?0',
-    'sec-ch-ua-platform: "Windows"'
+    'sec-ch-ua-platform: "Windows"',
 ];
 
 // 1. 请求 vip/list（忽略响应，必须调用）
