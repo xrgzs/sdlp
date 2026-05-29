@@ -11,7 +11,7 @@ const CACHE_TTL = 600;
 // 获取请求参数
 $url = filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '';
 $pwd = trim(strip_tags(filter_input(INPUT_GET, 'pwd'))) ?? '';
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 支持路径参数 /ilanzou/{shareId}
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';

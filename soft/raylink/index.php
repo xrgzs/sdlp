@@ -6,7 +6,7 @@ $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 // 支持路径参数 /raylink/lite
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';
 $pathSegment = !empty($pathInfo) ? trim($pathInfo, '/') : '';
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 判断是否是精简版
 $platform = (isset($_GET['lite']) || $pathSegment === 'lite') ? 5 : 0;

@@ -9,7 +9,7 @@ $pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
 
 // 输入参数
 $softid = $pathId ?: (isset($_GET['softid']) ? $_GET['softid'] : '');
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 检查参数
 if (empty($softid) || !is_numeric($softid) || strlen($softid) > 10) {

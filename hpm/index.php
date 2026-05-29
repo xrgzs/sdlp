@@ -3,8 +3,8 @@
 $cacheKey = 'hpm_list';
 $cacheTTL = 600;
 
-$name = filter_input(INPUT_GET, 'name', FILTER_SANITIZE_STRING);
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$name = trim(strip_tags($_GET['name'] ?? ''));
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 检查参数
 if (empty($name)) {

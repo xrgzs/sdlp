@@ -1,5 +1,5 @@
 <?php
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 if (!in_array($type, ['down', 'json'])) {
     http_response_code(400);

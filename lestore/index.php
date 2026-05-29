@@ -12,7 +12,7 @@ $pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
 
 // 输入参数
 $softid = $pathId ?: ($_GET['softid'] ?? '');
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 参数验证
 if (empty($softid) || !preg_match('/^[A-Za-z0-9]+$/', $softid)) {

@@ -68,7 +68,7 @@ foreach ($nodes as $node) {
 if (!empty($activationCodes)) {
     $result = $activationCodes[0] . PHP_EOL;
     // 仅在找到有效激活码时才缓存
-    if (function_exists('apcu_store')) {
+    if (function_exists('apcu_store') && !empty($activationCodes)) {
         apcu_store($cacheKey, $result, $cacheTTL);
     }
 } else {

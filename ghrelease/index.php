@@ -20,7 +20,7 @@ $tag = $_GET['tag'] ?? '';
 $search = $_GET['search'] ?? '';
 $filter = $_GET['filter'] ?? '';
 $mirror_name = $_GET['mirror'] ?? '';
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 检查参数
 if (!is_string($repo) || empty($repo) || strlen($repo) > 50) {
@@ -119,11 +119,9 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 // 查找匹配的 release 文件
 foreach ($data['assets'] as $asset) {
     if (empty($search) || strpos($asset['name'], $search) !== false) {
-        if (empty($filter) || str_ends_with($asset['name'], $filter) !== false) {
+        if (empty($filter) || str_ends_with($asset['name'], $filter)) {
             $matching_assets = $asset['browser_download_url'];
             break;
-        } else {
-            $matching_assets = $asset['browser_download_url'];
         }
     }
 }

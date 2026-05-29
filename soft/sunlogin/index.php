@@ -5,7 +5,7 @@ $cacheTTL = 600;
 
 // 获取参数
 $name = $_GET['name'] ?? '';
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 if (empty($name)) {
     http_response_code(400);

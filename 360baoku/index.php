@@ -9,7 +9,7 @@ $pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
 
 // 输入参数
 $appId = $pathId ?: (isset($_GET['appid']) ? $_GET['appid'] : '');
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 参数校验
 if (empty($appId) || !is_numeric($appId) || strlen($appId) > 10) {
