@@ -55,23 +55,27 @@ if ($isApcuEnabled) {
         exit;
     }
 }
-
-// 生成 uuid 和加密时间戳
-$uuid = generateFjUuid(21);
+// 生成标准 UUID 和加密时间戳
+$uuid = generateUuid();
 $timestamp = (string)(int)(microtime(true) * 1000);
 $ts = aesEncrypt2Hex($timestamp);
 
+// Cookie 文件（跨请求保持 session）
+$cookieFile = sys_get_temp_dir() . '/feijipan_' . md5($uuid) . '.txt';
+
 // 公共查询参数
-$commonParams = 'devType=6&devModel=Chrome&uuid=' . $uuid . '&extra=2&timestamp=' . $ts;
+$commonParams = 'devType=6&devModel=Chrome&uuid=' . urlencode($uuid) . '&extra=2&timestamp=' . $ts;
 
 // API 请求头（匹配 Java FjTool.header0）
 $apiHeaders = [
+    'Accept: application/json, text/plain, */*',
     'Accept-Encoding: gzip, deflate',
     'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
     'Cache-Control: no-cache',
     'Connection: keep-alive',
     'Content-Length: 0',
     'DNT: 1',
+    'Origin: https://www.feijipan.com',
     'Pragma: no-cache',
     'Referer: https://www.feijipan.com/',
     'Sec-Fetch-Dest: empty',
@@ -80,12 +84,12 @@ $apiHeaders = [
     'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'sec-ch-ua: "Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
     'sec-ch-ua-mobile: ?0',
-    'sec-ch-ua-platform: "Windows"'
+    'sec-ch-ua-platform: "Windows"',
 ];
 
-// 1. 请求 vip/list（忽略响应，必须调用）
+// 1. 请求 vip/list（建立 session，获取 cookie）
 $vipUrl = 'https://api.feijipan.com/ws/buy/vip/list?' . $commonParams;
-curlPost($vipUrl, $apiHeaders);
+curlRequest($vipUrl, 'POST', $apiHeaders, $cookieFile);
 
 // 2. 请求 recommend/list 获取文件信息
 $recommendParams = $commonParams . '&shareId=' . $shareId . '&type=0&offset=1&limit=60';
@@ -93,22 +97,30 @@ if (!empty($pwd)) {
     $recommendParams .= '&code=' . urlencode($pwd);
 }
 $recommendUrl = 'https://api.feijipan.com/ws/recommend/list?' . $recommendParams;
-$recommendResponse = curlPost($recommendUrl, $apiHeaders);
-if (empty($recommendResponse)) {
-    sendErrorResponse('获取分享信息失败', 500);
+$recommendResponse = curlRequest($recommendUrl, 'POST', $apiHeaders, $cookieFile);
+if (empty($recommendResponse['body'])) {
+    sendErrorResponse('获取分享信息失败', 500, 'HTTP ' . ($recommendResponse['code'] ?? 0));
 }
 
-$recommendData = json_decode($recommendResponse, true);
+$recommendData = json_decode($recommendResponse['body'], true);
 if (json_last_error() !== JSON_ERROR_NONE) {
-    sendErrorResponse('分享信息解析失败', 500);
+    sendErrorResponse('分享信息解析失败', 500, $recommendResponse['body']);
+}
+
+// 检查上游 API 业务状态码
+$upstreamCode = $recommendData['code'] ?? 0;
+if ($upstreamCode !== 200 && $upstreamCode !== 0) {
+    $upstreamMsg = $recommendData['msg'] ?? '未知错误';
+    sendErrorResponse('上游返回错误: ' . $upstreamMsg, 502, $recommendResponse['body']);
 }
 
 // 解析文件列表
-if (empty($recommendData['list'])) {
-    sendErrorResponse('未找到文件或密码错误', 500);
+$list = $recommendData['list'] ?? [];
+if (empty($list)) {
+    sendErrorResponse('未找到文件或密码错误', 500, $recommendResponse['body']);
 }
 
-$fileItem = $recommendData['list'][0] ?? null;
+$fileItem = $list[0] ?? null;
 if ($fileItem === null) {
     sendErrorResponse('文件列表为空', 500);
 }
@@ -121,48 +133,43 @@ if (empty($fileIds)) {
 
 // 文件信息在 fileList[0]
 $fileList = $fileItem['fileList'] ?? [];
-$fileName = !empty($fileList) ? ($fileList[0]['fileName'] ?? '') : '';
-$fileSize = !empty($fileList) ? ($fileList[0]['fileSize'] ?? 0) : 0; // KB
+if (empty($fileList)) {
+    sendErrorResponse('文件列表为空', 500);
+}
 
-// userId 在无认证模式下为 null（与 Java FjTool.userId 一致）
-$userId = null;
+// 检查是否为目录分享
+$fileType = $fileList[0]['fileType'] ?? 1;
+if ($fileType == 2) {
+    sendErrorResponse('该链接为目录分享，暂不支持', 400);
+}
+
+$fileId = $fileList[0]['fileId'] ?? $fileIds;
+$fileName = $fileList[0]['fileName'] ?? '';
+$fileSize = $fileList[0]['fileSize'] ?? 0;
 
 // 3. 生成加密参数获取下载链接
 $timestamp2 = (string)(int)(microtime(true) * 1000);
 $ts2 = aesEncrypt2Hex($timestamp2);
-$fidEncode = aesEncrypt2Hex($fileIds . '|' . $userId);
-$auth = aesEncrypt2Hex($fileIds . '|' . $timestamp2);
+$fidEncode = aesEncrypt2Hex($fileId . '|');
+$auth = aesEncrypt2Hex($fileId . '|' . $timestamp2);
 
-$redirectParams = 'downloadId=' . $fidEncode . '&enable=1&devType=6&uuid=' . $uuid . '&timestamp=' . $ts2 . '&auth=' . $auth . '&shareId=' . $shareId;
+$redirectParams = 'downloadId=' . urlencode($fidEncode) . '&enable=1&devType=6&uuid=' . urlencode($uuid) . '&timestamp=' . urlencode($ts2) . '&auth=' . urlencode($auth) . '&shareId=' . $shareId;
 $redirectUrl = 'https://api.feijipan.com/ws/file/redirect?' . $redirectParams;
 
-// 下载重定向请求头（匹配 Java FjTool.header）
-$redirectHeaders = [
-    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'Cache-Control: no-cache',
-    'Connection: keep-alive',
-    'DNT: 1',
-    'Pragma: no-cache',
-    'Referer: https://www.feijix.com/',
-    'Sec-Fetch-Dest: document',
-    'Sec-Fetch-Mode: navigate',
-    'Sec-Fetch-Site: cross-site',
-    'Sec-Fetch-User: ?1',
-    'Upgrade-Insecure-Requests: 1',
-    'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0',
-    'sec-ch-ua: "Microsoft Edge";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
-    'sec-ch-ua-mobile: ?0',
-    'sec-ch-ua-platform: "Windows"'
-];
-
 // 获取重定向 Location
-$downUrl = getRedirectUrl($redirectUrl, $redirectHeaders);
-if (empty($downUrl)) {
-    sendErrorResponse('未获取到下载链接', 500);
+$redirectResponse = curlRequest($redirectUrl, 'GET', $apiHeaders, $cookieFile);
+$downUrl = '';
+if (preg_match('/Location:\s*(.+)/i', $redirectResponse['headers'] ?? '', $matches)) {
+    $downUrl = trim($matches[1]);
 }
 
-// 格式化文件大小（KB 转可读格式）
+// 清理 cookie 文件
+@unlink($cookieFile);
+
+if (empty($downUrl)) {
+    sendErrorResponse('未获取到下载链接', 500, 'HTTP ' . ($redirectResponse['code'] ?? 0) . ' body: ' . ($redirectResponse['body'] ?? ''));
+}
+// 格式化文件大小
 $readableSize = formatFileSizeKB($fileSize);
 
 // 构建响应
@@ -190,65 +197,75 @@ exit;
 
 /********************** 工具函数 **********************/
 
-function sendErrorResponse(string $message, int $code = 400): void
+function sendErrorResponse(string $message, int $code = 400, string $upstream = ''): void
 {
     http_response_code($code);
-    die(json_encode([
+    $response = [
         'code' => $code,
         'msg'  => $message
-    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    ];
+    if (!empty($upstream)) {
+        $response['upstream'] = $upstream;
+    }
+    die(json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
 function extractShareId(string $url): string
 {
+    if (preg_match('/^[a-zA-Z0-9]+$/', $url)) {
+        return $url;
+    }
     if (preg_match('/(feijipan\.com|feijix\.com)\/s\/([a-zA-Z0-9]+)/', $url, $matches)) {
         return $matches[2];
     }
     return '';
 }
 
-function getAesKey(): string
-{
-    return 'dingHao-disk-app';
-}
-
 function aesEncrypt2Hex(string $source): string
 {
-    $key = getAesKey();
-    $encrypted = openssl_encrypt($source, 'AES-128-ECB', $key, OPENSSL_RAW_DATA);
+    $encrypted = openssl_encrypt($source, 'AES-128-ECB', 'dingHao-disk-app', OPENSSL_RAW_DATA);
     return bin2hex($encrypted);
 }
 
-function generateFjUuid(int $length = 21): string
+function generateUuid(): string
 {
-    $result = '';
-    for ($i = 0; $i < $length; $i++) {
-        $byte = random_bytes(1);
-        $value = ord($byte) & 0x3F;
-        if ($value < 36) {
-            $result .= base_convert($value, 10, 36);
-        } elseif ($value < 62) {
-            $result .= strtoupper(base_convert($value - 26, 10, 36));
-        } elseif ($value > 62) {
-            $result .= '-';
-        } else {
-            $result .= '_';
-        }
-    }
-    return $result;
+    return strtolower(sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000,
+        mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    ));
 }
 
-function curlPost(string $url, array $headers = []): string
+/**
+ * 统一 HTTP 请求函数（带 cookie 持久化）
+ */
+function curlRequest(string $url, string $method = 'GET', array $headers = [], string $cookieFile = ''): array
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HEADER         => true,
+        CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_POST           => true,
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_HTTPHEADER     => $headers
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_ENCODING       => '',
+        CURLOPT_PROXY          => '',
+        CURLOPT_HTTPHEADER     => $headers,
     ]);
+
+    if (!empty($cookieFile)) {
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
+    }
+
+    if ($method === 'POST') {
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, '');
+    }
+
     $maxRetries = 2;
     $retryDelay = 300;
     $response = false;
@@ -257,32 +274,20 @@ function curlPost(string $url, array $headers = []): string
         if ($response !== false && curl_errno($ch) === 0) break;
         if ($i < $maxRetries) usleep($retryDelay * 1000);
     }
-    curl_close($ch);
-    return $response ?: '';
-}
 
-function getRedirectUrl(string $url, array $headers = []): string
-{
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_HEADER         => true,
-        CURLOPT_NOBODY         => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_HTTPHEADER     => $headers
-    ]);
-    $maxRetries = 2;
-    $retryDelay = 300;
-    for ($i = 0; $i <= $maxRetries; $i++) {
-        curl_exec($ch);
-        if (curl_errno($ch) === 0) break;
-        if ($i < $maxRetries) usleep($retryDelay * 1000);
-    }
-    $info = curl_getinfo($ch);
+    $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    return $info['redirect_url'] ?? '';
+
+    if ($response === false) {
+        return ['code' => 0, 'headers' => '', 'body' => ''];
+    }
+
+    return [
+        'code'    => $httpCode,
+        'headers' => substr($response, 0, $headerSize),
+        'body'    => substr($response, $headerSize),
+    ];
 }
 
 function formatFileSizeKB(int $kb): string
