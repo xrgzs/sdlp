@@ -132,12 +132,6 @@ if ($fileItem === null) {
     sendErrorResponse('文件列表为空', 500);
 }
 
-// 检查是否为目录分享
-$fileType = $fileItem['fileType'] ?? 1;
-if ($fileType == 2) {
-    sendErrorResponse('该链接为目录分享，暂不支持', 400);
-}
-
 // fileIds 和 userId 在 list[0] 级别
 $fileIds = $fileItem['fileIds'] ?? '';
 $userId = $fileItem['userId'] ?? '';
@@ -147,8 +141,18 @@ if (empty($fileIds)) {
 
 // 文件信息在 fileList[0]
 $fileList = $fileItem['fileList'] ?? [];
-$fileName = !empty($fileList) ? ($fileList[0]['fileName'] ?? '') : '';
-$fileSize = !empty($fileList) ? ($fileList[0]['fileSize'] ?? 0) : 0; // KB
+if (empty($fileList)) {
+    sendErrorResponse('文件列表为空', 500);
+}
+
+// 检查是否为目录分享
+$fileType = $fileList[0]['fileType'] ?? 1;
+if ($fileType == 2) {
+    sendErrorResponse('该链接为目录分享，暂不支持', 400);
+}
+
+$fileName = $fileList[0]['fileName'] ?? '';
+$fileSize = $fileList[0]['fileSize'] ?? 0; // KB
 
 // 3. 生成加密参数获取下载链接
 $timestamp2 = (string)(int)(microtime(true) * 1000);
