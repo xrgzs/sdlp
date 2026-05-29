@@ -1,14 +1,21 @@
 <?php
 // APCU 缓存配置
-$cacheKeyPrefix = 'sunlogin'; // 唯一缓存键名前缀
-$cacheTTL = 600; // 缓存有效期 10 分钟（秒）
+$cacheKeyPrefix = 'sunlogin';
+$cacheTTL = 600;
 
-// 获取参数 name
-$name = $_GET['name'];
+// 获取参数
+$name = $_GET['name'] ?? '';
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+
 if (empty($name)) {
     http_response_code(400);
     die('参数 name 不能为空。');
 }
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
+}
+
 // 获取参数 x64
 if (isset($_GET['x64'])) {
     $args = 'x64=1';
@@ -70,11 +77,21 @@ if (function_exists('apcu_store') && !empty($downloadUrl)) {
     apcu_store($cacheKey, $downloadUrl, $cacheTTL);
 }
 
-// 跳转到下载地址
-if (!empty($downloadUrl)) {
-    header("Location: $downloadUrl");
-} else {
+// 返回响应
+if (empty($downloadUrl)) {
     http_response_code(404);
     die('未找到下载链接。');
 }
+
+if ($type === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'code' => 200,
+        'msg'  => '解析成功',
+        'downUrl' => $downloadUrl
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+header('Location: ' . $downloadUrl, true, 302);
 exit;

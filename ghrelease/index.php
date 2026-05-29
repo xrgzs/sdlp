@@ -16,10 +16,11 @@ function handleLocation($url, $mirror_name = '')
 
 // 获取传入的参数
 $repo = $_GET['repo'];
-$tag = $_GET['tag'] ?? ''; // 如果未指定 tag，则默认为空
-$search = $_GET['search'] ?? ''; // 如果未指定 search，则默认为空
-$filter = $_GET['filter'] ?? ''; // 如果未指定 filter，则默认为空
-$mirror_name = $_GET['mirror'] ?? ''; // 如果未指定 mirror，则默认为空
+$tag = $_GET['tag'] ?? '';
+$search = $_GET['search'] ?? '';
+$filter = $_GET['filter'] ?? '';
+$mirror_name = $_GET['mirror'] ?? '';
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
 // 检查参数
 if (!is_string($repo) || empty($repo) || strlen($repo) > 50) {
@@ -38,10 +39,10 @@ if (!is_string($filter) || strlen($filter) > 50) {
     http_response_code(400);
     die('输入 filter 参数不合法！');
 }
-// if (!is_string($mirror_name) || strlen($mirror_name) > 10) {
-//     http_response_code(400);
-//     die('输入 mirror_name 参数不合法！');
-// }
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
+}
 
 // 进一步过滤和转义输入，防止注入
 $repo = htmlspecialchars($repo);
@@ -133,7 +134,18 @@ if (!empty($matching_assets)) {
 
 // 将新数据存入 APCu 缓存
 if (function_exists('apcu_store') && !empty($downloadUrl)) {
-    apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
+    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
+}
+
+// 返回响应
+if ($type === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'code' => 200,
+        'msg'  => '解析成功',
+        'downUrl' => $downloadUrl
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
 handleLocation($downloadUrl, $mirror_name);

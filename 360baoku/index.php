@@ -9,11 +9,16 @@ $pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
 
 // 输入参数
 $appId = $pathId ?: (isset($_GET['appid']) ? $_GET['appid'] : '');
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
 // 参数校验
 if (empty($appId) || !is_numeric($appId) || strlen($appId) > 10) {
     http_response_code(400);
     die('输入参数不合法！');
+}
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
 }
 
 // 进行更严格的过滤或转义，防止URL注入
@@ -69,14 +74,24 @@ $downloadUrl = str_replace('cds.360tpcdn.com', 'cdn-download.soft.360.cn', $down
 
 // 将新数据存入 APCu 缓存
 if (function_exists('apcu_store') && !empty($downloadUrl)) {
-    apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
+    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
 }
 
-// 跳转到下载地址
-if (!empty($downloadUrl)) {
-    header("Location: $downloadUrl");
-} else {
+// 返回响应
+if (empty($downloadUrl)) {
     http_response_code(404);
     die('未找到下载链接。');
 }
+
+if ($type === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'code' => 200,
+        'msg'  => '解析成功',
+        'downUrl' => $downloadUrl
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+header('Location: ' . $downloadUrl, true, 302);
 exit;

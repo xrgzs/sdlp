@@ -12,11 +12,16 @@ $pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
 
 // 输入参数
 $softid = $pathId ?: ($_GET['softid'] ?? '');
+$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
 
 // 参数验证
 if (empty($softid) || !preg_match('/^[A-Za-z0-9]+$/', $softid)) {
     http_response_code(400);
     die('输入参数不合法！');
+}
+if (!in_array($type, ['down', 'json'])) {
+    http_response_code(400);
+    die('TYPE不合法');
 }
 
 // 生成缓存键
@@ -71,14 +76,24 @@ $downloadUrl = $jsonResponse['data']['downloadUrls'][0]['downLoadUrl'];
 
 // 将新数据存入 APCu 缓存
 if (function_exists('apcu_store') && !empty($downloadUrl)) {
-    apcu_store($cacheKey, $downloadUrl, $cacheTTL); // 存储时自动覆盖旧缓存
+    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
 }
 
-// 跳转到下载地址
-if (!empty($downloadUrl)) {
-    header("Location: $downloadUrl");
-} else {
+// 返回响应
+if (empty($downloadUrl)) {
     http_response_code(404);
     die('未找到下载链接。');
 }
+
+if ($type === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'code' => 200,
+        'msg'  => '解析成功',
+        'downUrl' => $downloadUrl
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+header('Location: ' . $downloadUrl, true, 302);
 exit;
