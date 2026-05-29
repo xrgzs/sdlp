@@ -13,20 +13,29 @@ const CACHE_TTL = 600;
 $requestParams = [
     'url'  => filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '',
     'pwd'  => trim(strip_tags(filter_input(INPUT_GET, 'pwd'))) ?? '',
-    'type' => trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? ''
+    'type' => trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down'
 ];
 
+// 支持路径参数 /lanzou/{id}
+$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+
 // 参数校验
-if (empty($requestParams['url'])) {
-    sendErrorResponse('请输入URL', 400);
+if (empty($requestParams['url']) && empty($pathId)) {
+    sendErrorResponse('请输入URL或文件ID', 400);
 }
 // 确保 pwd 不超过 6 位
 if (strlen($requestParams['pwd']) > 6) {
     sendErrorResponse('PWD不合法', 400);
 }
-// 确保 type 只能是 down, json 或空
-if (!in_array($requestParams['type'], ['down', 'json', ''])) {
+// 确保 type 只能是 down 或 json
+if (!in_array($requestParams['type'], ['down', 'json'])) {
     sendErrorResponse('TYPE不合法', 400);
+}
+
+// 如果是路径参数，构建完整URL
+if (!empty($pathId)) {
+    $requestParams['url'] = 'https://www.lanzoup.com/' . $pathId;
 }
 
 // apcu_clear_cache();

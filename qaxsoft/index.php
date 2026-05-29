@@ -3,11 +3,15 @@
 $cacheKeyPrefix = 'qaxsoft'; // 唯一缓存键名
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
+// 支持路径参数 /qaxsoft/{softid}
+$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+
 // 输入参数
-$softid = $_GET['softid'] ?? '';
+$softid = $pathId ?: ($_GET['softid'] ?? '');
 
 // 参数验证
-if (!is_numeric($softid) || strlen($softid) > 10) {
+if (empty($softid) || !is_numeric($softid) || strlen($softid) > 10) {
     http_response_code(400);
     die('输入参数不合法！');
 }
