@@ -6,11 +6,15 @@ $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 // 定义常量
 define('BASE_URL', "https://pc-store.lenovomm.cn/dlservice/getPcSoftDownloadUrlList?");
 
+// 支持路径参数 /lestore/{softid}
+$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+
 // 输入参数
-$softid = $_GET['softid'] ?? '';
+$softid = $pathId ?: ($_GET['softid'] ?? '');
 
 // 参数验证
-if (!preg_match('/^[A-Za-z0-9]+$/', $softid)) { // 允许字母和数字组合
+if (empty($softid) || !preg_match('/^[A-Za-z0-9]+$/', $softid)) {
     http_response_code(400);
     die('输入参数不合法！');
 }

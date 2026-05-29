@@ -3,15 +3,15 @@
 $cacheKeyPrefix = 'qqsoft'; // 唯一缓存键名
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
+// 支持路径参数 /qqsoft/{softid}
+$pathInfo = $_SERVER['PATH_INFO'] ?? '';
+$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+
 // 输入参数
-// $cmdid = isset($_GET['cmdid']) ? $_GET['cmdid'] : ''; // 获取传入的 cmdid 参数
-$softid = isset($_GET['softid']) ? $_GET['softid'] : ''; // 获取传入的 req 参数
+$softid = $pathId ?: (isset($_GET['softid']) ? $_GET['softid'] : '');
 
 // 检查参数
-// if (!is_numeric($cmdid) || strlen($cmdid) > 10) {
-//     die('输入参数不合法！');
-// }
-if (!is_numeric($softid) || strlen($softid) > 10) {
+if (empty($softid) || !is_numeric($softid) || strlen($softid) > 10) {
     http_response_code(400);
     die('输入参数不合法！');
 }

@@ -153,8 +153,8 @@ server {
 从软件下载页面 URL 中提取 `appid`：
 
 ```
-页面：http://baoku.360.cn/soft/show/appid/104693057
-接口：/360baoku/?appid=104693057
+/360baoku/?appid=104693057
+/360baoku/104693057              # 简洁格式
 ```
 
 ### 联想软件商店
@@ -162,8 +162,8 @@ server {
 从软件详情页 URL 中提取 `softid`：
 
 ```
-页面：https://lestore.lenovo.com/detail/13407
-接口：/lestore/?softid=13407
+/lestore/?softid=13407
+/lestore/13407                   # 简洁格式
 ```
 
 ### QQ 软件中心
@@ -171,8 +171,8 @@ server {
 从软件详情页 URL 中提取 `softid`：
 
 ```
-页面：https://pc.qq.com/detail/11/detail_351.html
-接口：/qqsoft/?softid=351
+/qqsoft/?softid=351
+/qqsoft/351                      # 简洁格式
 ```
 
 ### Scoop 包管理器
@@ -211,17 +211,13 @@ server {
 |------|------|------|
 | `url` | 蓝奏云链接 | 是 |
 | `pwd` | 提取密码 | 否 |
-| `type` | 设为 `down` 直接下载 | 否 |
+| `type` | 设为 `json` 返回JSON | 否 |
 
 ```
-# 直接下载
-/lanzou/?url=https://www.lanzoup.com/iNfv31pt6oab&type=down
-
-# 带密码
-/lanzou/?url=https://www.lanzoum.com/ixkVm66d3kd&pwd=2333
-
-# 输出 JSON（含直链）
-/lanzou/?url=https://www.lanzoup.com/iNfv31pt6oab
+/lanzou/?url=https://www.lanzoup.com/xxxxx&type=json
+/lanzou/?url=https://www.lanzoup.com/xxxxx&pwd=1234
+/lanzou/xxxxxx                   # 简洁格式
+/lanzou/xxxxxx?pwd=1234          # 带密码
 ```
 
 ### 奇安信软件中心
@@ -230,6 +226,7 @@ server {
 
 ```
 /qaxsoft/?softid=103352
+/qaxsoft/103352                  # 简洁格式
 ```
 
 ### HPM 模块
