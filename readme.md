@@ -48,6 +48,13 @@
 | `/lanzou/` | 蓝奏云解析 | `url` `pwd` `type` |
 | `/mediafire/` | MediaFire 解析 | `url` |
 | `/qfile/` | QQ 文件转发 | `batchId` |
+| `/guangya/` | 光鸭云盘解析 | `url` |
+| `/feijipan/` | 飞机盘解析 | `url` `pwd` |
+| `/ilanzou/` | i蓝奏解析 | `url` `pwd` |
+| `/lecloud/` | 联想云盘解析 | `url` `pwd` |
+| `/wps/` | 金山文档解析 | `url` `pwd` |
+| `/qqmail/` | QQ邮箱文件解析 | `url` |
+| `/wenshushu/` | 文叔叔解析 | `url` `pwd` |
 
 ### 随机壁纸
 
@@ -247,6 +254,66 @@ server {
 
 ```
 /qfile/?batchId=xxxxxx
+```
+
+### 光鸭云盘
+
+解析光鸭云盘分享链接：
+
+```
+/guangya/?url=https://www.guangyapan.com/s/xxxxxx
+```
+
+### 飞机盘
+
+解析飞机盘分享链接，支持密码：
+
+```
+/feijipan/?url=https://www.feijipan.com/s/xxxxxx
+/feijipan/?url=https://www.feijipan.com/s/xxxxxx&pwd=1234
+```
+
+### i蓝奏
+
+解析 i蓝奏分享链接，支持密码：
+
+```
+/ilanzou/?url=https://www.ilanzou.com/s/xxxxxx
+/ilanzou/?url=https://www.ilanzou.com/s/xxxxxx&pwd=1234
+```
+
+### 联想云盘
+
+解析联想云盘分享链接，支持密码：
+
+```
+/lecloud/?url=https://lecloud.lenovo.com/share/xxxxxx
+/lecloud/?url=https://lecloud.lenovo.com/share/xxxxxx&pwd=1234
+```
+
+### 金山文档
+
+解析金山文档分享链接：
+
+```
+/wps/?url=https://www.kdocs.cn/l/xxxxxx
+```
+
+### QQ邮箱文件
+
+解析 QQ 邮箱文件中转站链接：
+
+```
+/qqmail/?url=https://mail.qq.com/xxxxxx
+```
+
+### 文叔叔
+
+解析文叔叔分享链接，支持密码：
+
+```
+/wenshushu/?url=https://www.wenshushu.cn/f/xxxxxx
+/wenshushu/?url=https://www.wenshushu.cn/f/xxxxxx&pwd=1234
 ```
 
 ## ⚡ 缓存机制
