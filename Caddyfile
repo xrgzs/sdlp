@@ -1,0 +1,85 @@
+{
+    frankenphp
+}
+
+:80 {
+    root * /app/public
+    encode zstd gzip
+
+    # PATH_INFO rewrite for simple path format
+    # /dir/param -> /dir/index.php/param (only when file doesn't exist)
+
+    @r360baoku {
+        not file
+        path_regexp r360baoku ^/360baoku/(.+)$
+    }
+    rewrite @r360baoku /360baoku/index.php/{re.r360baoku.1}
+
+    @rlestore {
+        not file
+        path_regexp rlestore ^/lestore/(.+)$
+    }
+    rewrite @rlestore /lestore/index.php/{re.rlestore.1}
+
+    @rqqsoft {
+        not file
+        path_regexp rqqsoft ^/qqsoft/(.+)$
+    }
+    rewrite @rqqsoft /qqsoft/index.php/{re.rqqsoft.1}
+
+    @rqaxsoft {
+        not file
+        path_regexp rqaxsoft ^/qaxsoft/(.+)$
+    }
+    rewrite @rqaxsoft /qaxsoft/index.php/{re.rqaxsoft.1}
+
+    @rlanzou {
+        not file
+        path_regexp rlanzou ^/lanzou/(.+)$
+    }
+    rewrite @rlanzou /lanzou/index.php/{re.rlanzou.1}
+
+    @rfeijipan {
+        not file
+        path_regexp rfeijipan ^/feijipan/(.+)$
+    }
+    rewrite @rfeijipan /feijipan/index.php/{re.rfeijipan.1}
+
+    @rilanzou {
+        not file
+        path_regexp rilanzou ^/ilanzou/(.+)$
+    }
+    rewrite @rilanzou /ilanzou/index.php/{re.rilanzou.1}
+
+    @rlecloud {
+        not file
+        path_regexp rlecloud ^/lecloud/(.+)$
+    }
+    rewrite @rlecloud /lecloud/index.php/{re.rlecloud.1}
+
+    @rwps {
+        not file
+        path_regexp rwps ^/wps/(.+)$
+    }
+    rewrite @rwps /wps/index.php/{re.rwps.1}
+
+    @rwenshushu {
+        not file
+        path_regexp rwenshushu ^/wenshushu/(.+)$
+    }
+    rewrite @rwenshushu /wenshushu/index.php/{re.rwenshushu.1}
+
+    @rguangya {
+        not file
+        path_regexp rguangya ^/guangya/(.+)$
+    }
+    rewrite @rguangya /guangya/index.php/{re.rguangya.1}
+
+    @rraylink {
+        not file
+        path_regexp rraylink ^/soft/raylink/(.+)$
+    }
+    rewrite @rraylink /soft/raylink/index.php/{re.rraylink.1}
+
+    php_server
+}
