@@ -69,7 +69,7 @@ if (isset($_GET['url'])) {
     if (isset($matches[0])) {
         $downloadUrl = $matches[0];
         // 将新数据存入 APCu 缓存
-        if (function_exists('apcu_store')) {
+        if (function_exists('apcu_store') && !empty($downloadUrl)) {
             apcu_store($cacheKey, $downloadUrl, $cacheTTL);
         }
         http_response_code(302);
