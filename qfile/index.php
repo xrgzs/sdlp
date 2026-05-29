@@ -12,7 +12,7 @@ const CACHE_TTL = 600;
 $requestParams = [
     // 'url'  => filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '',
     'batchId'  => trim(strip_tags(filter_input(INPUT_GET, 'batchId'))) ?? '',
-    'type' => trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down'
+    'type' => trim(strip_tags($_GET['type'] ?? 'down'))
 ];
 
 // 参数校验

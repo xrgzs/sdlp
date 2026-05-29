@@ -8,7 +8,7 @@ $name = isset($_GET['name']) ? $_GET['name'] : '';
 $bucket = isset($_GET['bucket']) ? $_GET['bucket'] : 'ScoopInstaller/Main';
 $branch = isset($_GET['branch']) ? $_GET['branch'] : 'master';
 $arch = isset($_GET['arch']) ? $_GET['arch'] : '64bit';
-$type = trim(strip_tags(filter_input(INPUT_GET, 'type'))) ?? 'down';
+$type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 检查参数
 if (!is_string($name) || empty($name) || strlen($name) > 50) {
