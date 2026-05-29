@@ -297,7 +297,8 @@ function curlPost(string $url, array $headers = []): string
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_POST           => true,
         CURLOPT_TIMEOUT        => 15,
-        CURLOPT_HTTPHEADER     => $headers
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_ENCODING       => '',
     ]);
     $maxRetries = 2;
     $retryDelay = 300;
@@ -320,7 +321,8 @@ function getRedirectUrl(string $url, array $headers = []): string
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_TIMEOUT        => 15,
-        CURLOPT_HTTPHEADER     => $headers
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_ENCODING       => '',
     ]);
     $maxRetries = 2;
     $retryDelay = 300;
