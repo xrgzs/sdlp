@@ -128,6 +128,16 @@ server {
     root /www/sites/your-domain/index/sdlp;
     index index.php index.html;
 
+    # 简洁路径重写：文件不存在时尝试 index.php + PATH_INFO
+    location / {
+        try_files $uri $uri/ @pathinfo;
+    }
+
+    location @pathinfo {
+        rewrite ^/(soft/[^/]+)/(.+)$ /$1/index.php/$2 last;
+        rewrite ^/([^/]+)/(.+)$ /$1/index.php/$2 last;
+    }
+
     location ~ \.php(/|$) {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
         fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
@@ -138,7 +148,7 @@ server {
 }
 ```
 
-> 💡 `\.php(/|$)` 和 `PATH_INFO` 配置是简洁路径格式（如 `/360baoku/104693057`）正常工作的前提。
+> 💡 `@pathinfo` 规则将 `/ilanzou/0LCwuNko` 重写为 `/ilanzou/index.php/0LCwuNko`，`try_files` 确保已存在的文件（如 `/wall/bingtoday.php`）不会被错误重写。
 
 ## 📖 接口详细说明
 
