@@ -12,7 +12,7 @@ const CACHE_TTL = 600;
 // 获取请求参数
 $requestParams = [
     'url'  => filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '',
-    'pwd'  => trim(strip_tags(filter_input(INPUT_GET, 'pwd'))) ?? '',
+    'pwd'  => trim(strip_tags(filter_input(INPUT_GET, 'pwd') ?? '')),
     'type' => trim(strip_tags($_GET['type'] ?? 'down'))
 ];
 
@@ -151,23 +151,31 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         sendErrorResponse('请输入分享密码');
     }
 
-    preg_match_all('/\'sign\'\s{0,}:\s{0,}\'(\w{10,})\',/m', $content, $signMatches);
-    preg_match_all("/\/ajaxm\.php\?file=(\d{2,})/m", $content, $fileIdMatches);
+    preg_match('/var isngis\s*=\s*\'([^\']+)\'/', $content, $signMatches);
+    preg_match('/\/ajaxfile\.php\?file=(\d+)/', $content, $fileIdMatches);
 
     $postData = [
-        "action" => 'downprocess',
-        "sign"   => end($signMatches[1]) ?? '',
-        "p"      => $password,
-        "kd"     => 1
+        'action' => 'downprocess',
+        'sign'   => $signMatches[1] ?? '',
+        'kd'     => 1,
+        'p'      => $password
     ];
-    $apiResponse = postRequest($postData, "https://www.lanzouf.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $referer);
+    $apiResponse = postRequest($postData, 'https://www.lanzouf.com/ajaxfile.php?file=' . ($fileIdMatches[1] ?? ''), $referer);
     $responseData = json_decode($apiResponse, true);
 
-    if ($responseData['zt'] != 1) {
+    if (($responseData['zt'] ?? 0) != 1) {
         sendErrorResponse($responseData['inf'] ?? '解析失败', 500);
     }
 
-    $fileInfo['downUrl'] = processDownloadUrl($responseData);
+    if (!empty($responseData['inf'])) {
+        $fileInfo['name'] = $responseData['inf'];
+    }
+    if (empty($responseData['dom']) || empty($responseData['url'])) {
+        sendErrorResponse('下载链接缺失', 500);
+    }
+
+    $landingUrl = $responseData['dom'] . '/file/' . $responseData['url'];
+    $fileInfo['downUrl'] = resolveFinalDownloadUrl($landingUrl);
 }
 
 /**
@@ -175,39 +183,49 @@ function handlePasswordProtectedFile(string $content, string $password, string $
  */
 function handlePublicFile(string $content, string $referer, array &$fileInfo): void
 {
-    preg_match_all("/<iframe.*?name=\"[\s\S]*?\"\ssrc=\"\/(.*?)\"/", $content, $iframeMatches);
-    $iframeUrl = "https://www.lanzouf.com/" . ($iframeMatches[1][0] ?? '');
+    if (!preg_match('/<iframe[^>]*src="(\/[^"]+|https:\/\/[^"]+)"/', $content, $iframeMatches)) {
+        sendErrorResponse('未找到下载 iframe', 500);
+    }
+    $iframePath = $iframeMatches[1];
+    $iframeUrl = str_starts_with($iframePath, 'http') ? $iframePath : 'https://www.lanzouf.com' . $iframePath;
 
-    $iframeContent = fetchPageContent($iframeUrl);
-    preg_match_all('/wp_sign\s{0,}=\s{0,}\'(\w{10,})\';/m', $iframeContent, $signMatches);
-    preg_match_all("/\/ajaxm\.php\?file=(\d{2,})/m", $iframeContent, $fileIdMatches);
+    $iframeContent = fetchPageContent($iframeUrl, $referer);
 
-    $postData = [
-        "action" => 'downprocess',
-        "sign"   => $signMatches[1][0] ?? '',
-        "kd"     => 1,
-        "ves"    => 1
-    ];
-
-    $apiResponse = postRequest($postData, "https://www.lanzouf.com/ajaxm.php?file=" . ($fileIdMatches[1][0] ?? ''), $iframeUrl, $referer);
-    $responseData = json_decode($apiResponse, true);
-
-    if ($responseData['zt'] != 1) {
-        sendErrorResponse($responseData['inf'] ?? '解析失败', 500);
+    if (preg_match('/id="tourl"[\s\S]*?href="(https:\/\/[^"]+)"/', $iframeContent, $tourlMatches)) {
+        $fileInfo['downUrl'] = $tourlMatches[1];
+        return;
     }
 
-    $fileInfo['downUrl'] = processDownloadUrl($responseData);
-}
+    preg_match('/\/ajaxfile\.php\?file=(\d+)/', $iframeContent, $fileIdMatches);
+    preg_match('/wp_sign\s*=\s*\'([^\']+)\'/', $iframeContent, $signMatches);
+    preg_match('/ajaxdata\s*=\s*\'([^\']+)\'/', $iframeContent, $ajaxdataMatches);
+    preg_match('/var kdns\s*=\s*(\d+)/', $iframeContent, $kdnsMatches);
+    preg_match('/var down_3\s*=\s*\'([^\']*)\'/', $iframeContent, $suffix3Matches);
+    preg_match('/var down_1\s*=\s*\'([^\']*)\'/', $iframeContent, $suffix1Matches);
 
-/**
- * 处理最终下载链接
- */
-function processDownloadUrl(array $responseData): string
-{
-    $primaryUrl = $responseData['dom'] . '/file/' . $responseData['url'];
-    $finalUrl = getRedirectUrl($primaryUrl) ?: $primaryUrl;
-    $finalUrl = preg_replace('/pid=(.*?.)&/', '', $finalUrl);
-    return $finalUrl;
+    $postData = [
+        'action'     => 'downprocess',
+        'websignkey' => $ajaxdataMatches[1] ?? '',
+        'signs'      => $ajaxdataMatches[1] ?? '',
+        'sign'       => $signMatches[1] ?? '',
+        'websign'    => '',
+        'kd'         => $kdnsMatches[1] ?? 0,
+        'ves'        => 1
+    ];
+
+    $apiResponse = postRequest($postData, 'https://www.lanzouf.com/ajaxfile.php?file=' . ($fileIdMatches[1] ?? ''), $iframeUrl);
+    $responseData = json_decode($apiResponse, true);
+
+    if (($responseData['zt'] ?? 0) != 1) {
+        sendErrorResponse($responseData['inf'] ?? '解析失败', 500);
+    }
+    if (empty($responseData['dom']) || empty($responseData['url'])) {
+        sendErrorResponse('下载链接缺失', 500);
+    }
+
+    $suffix = $suffix3Matches[1] ?? ($suffix1Matches[1] ?? '');
+    $landingUrl = $responseData['dom'] . '/file/' . $responseData['url'] . $suffix;
+    $fileInfo['downUrl'] = resolveFinalDownloadUrl($landingUrl);
 }
 
 /**
@@ -234,19 +252,24 @@ function processApiResponse(array $fileInfo, string $requestType): void
 /**
  * 执行GET请求（带重试）
  */
-function fetchPageContent(string $url): string
+function fetchPageContent(string $url, string $referer = '', array $headers = []): string
 {
     $ch = curl_init($url);
+    $requestHeaders = array_merge([
+        'X-FORWARDED-FOR: ' . generateRandomIP(),
+        'CLIENT-IP: ' . generateRandomIP()
+    ], $headers);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_ENCODING       => '',
         CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
-        CURLOPT_HTTPHEADER     => [
-            'X-FORWARDED-FOR: ' . generateRandomIP(),
-            'CLIENT-IP: ' . generateRandomIP()
-        ]
+        CURLOPT_HTTPHEADER     => $requestHeaders,
     ]);
+    if (!empty($referer)) {
+        curl_setopt($ch, CURLOPT_REFERER, $referer);
+    }
     $maxRetries = 2;
     $retryDelay = 300;
     $response = false;
@@ -255,7 +278,6 @@ function fetchPageContent(string $url): string
         if ($response !== false && curl_errno($ch) === 0) break;
         if ($i < $maxRetries) usleep($retryDelay * 1000);
     }
-    curl_close($ch);
     return $response;
 }
 
@@ -272,6 +294,7 @@ function postRequest(array $data, string $url, string $referer = ''): string
         CURLOPT_REFERER        => $referer,
         CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
         CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_ENCODING       => '',
         CURLOPT_HTTPHEADER     => [
             'X-FORWARDED-FOR: ' . generateRandomIP(),
             'CLIENT-IP: ' . generateRandomIP()
@@ -285,32 +308,54 @@ function postRequest(array $data, string $url, string $referer = ''): string
         if ($response !== false && curl_errno($ch) === 0) break;
         if ($i < $maxRetries) usleep($retryDelay * 1000);
     }
-    curl_close($ch);
     return $response;
 }
 
 /**
- * 获取重定向URL（带重试）
+ * 解析落地页，返回最终 CDN 直链
  */
-function getRedirectUrl(string $url): string
+function resolveFinalDownloadUrl(string $landingUrl): string
+{
+    $cookieFile = sys_get_temp_dir() . '/lanzou_' . md5($landingUrl . microtime(true)) . '.txt';
+    $commonHeaders = [
+        'X-FORWARDED-FOR: ' . generateRandomIP(),
+        'CLIENT-IP: ' . generateRandomIP()
+    ];
+
+    // 第一次访问落地页，取得 down_ip cookie
+    fetchEffectiveUrl($landingUrl, $cookieFile, $commonHeaders);
+
+    // 第二次带浏览器导航特征头，跟随 302 拿到真实 CDN 直链
+    $browserHeaders = array_merge($commonHeaders, [
+        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
+        'Sec-Fetch-Dest: document',
+        'Sec-Fetch-Mode: navigate',
+        'Sec-Fetch-Site: cross-site',
+        'Upgrade-Insecure-Requests: 1',
+    ]);
+    $finalUrl = fetchEffectiveUrl($landingUrl, $cookieFile, $browserHeaders);
+
+    @unlink($cookieFile);
+    return $finalUrl ?: $landingUrl;
+}
+
+/**
+ * 带 cookie 请求并返回最终有效 URL
+ */
+function fetchEffectiveUrl(string $url, string $cookieFile, array $headers): string
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-        CURLOPT_HEADER           => true,
-        CURLOPT_NOBODY     => true,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_ENCODING       => '',
+        CURLOPT_COOKIEJAR      => $cookieFile,
+        CURLOPT_COOKIEFILE     => $cookieFile,
         CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
-        CURLOPT_HTTPHEADER     => [
-            'X-FORWARDED-FOR: ' . generateRandomIP(),
-            'CLIENT-IP: ' . generateRandomIP(),
-            'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-encoding: gzip, deflate, br, zstd',
-            'accept-language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'priority: u=0, i',
-            'upgrade-insecure-requests: 1',
-        ]
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_TIMEOUT        => 30,
     ]);
     $maxRetries = 2;
     $retryDelay = 300;
@@ -319,9 +364,8 @@ function getRedirectUrl(string $url): string
         if (curl_errno($ch) === 0) break;
         if ($i < $maxRetries) usleep($retryDelay * 1000);
     }
-    $url = curl_getinfo($ch);
-    curl_close($ch);
-    return $url["redirect_url"];
+    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+    return is_string($effectiveUrl) ? $effectiveUrl : '';
 }
 
 /**
