@@ -119,7 +119,9 @@ function extractFileInfo(string $content): array
         ],
         'size' => [
             '/<div class="n_filesize".*?>大小：(.*?)<\/div>/',
-            '/<span class="p7">文件大小：<\/span>(.*?)<br>/'
+            '/<span class="p7">文件大小：<\/span>(.*?)<br>/',
+            '/<meta name="description" content="文件大小：([^"]+)"\s*\/?>/',
+            '/(?:^|>)\s*文件大小：([^<"\n]+)/'
         ]
     ];
 
@@ -347,7 +349,7 @@ function fetchEffectiveUrl(string $url, string $cookieFile, array $headers): str
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_RETURNTRANSFER => false,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_ENCODING       => '',
@@ -356,6 +358,9 @@ function fetchEffectiveUrl(string $url, string $cookieFile, array $headers): str
         CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_TIMEOUT        => 30,
+        CURLOPT_WRITEFUNCTION  => static function ($ch, $data) {
+            return strlen($data);
+        },
     ]);
     $maxRetries = 2;
     $retryDelay = 300;
