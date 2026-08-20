@@ -11,7 +11,7 @@ const CACHE_TTL = 600;
 
 // 获取请求参数
 $requestParams = [
-    'url'  => filter_input(INPUT_GET, 'url', FILTER_SANITIZE_URL) ?? '',
+    'url'  => trim(filter_input(INPUT_GET, 'url') ?? ''),
     'pwd'  => trim(strip_tags(filter_input(INPUT_GET, 'pwd') ?? '')),
     'type' => trim(strip_tags($_GET['type'] ?? 'down'))
 ];
