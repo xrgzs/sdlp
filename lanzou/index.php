@@ -18,7 +18,7 @@ $requestParams = [
 
 // 支持路径参数 /lanzou/{id}
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';
-$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+$pathId = !empty($pathInfo) ? preg_replace('/[^a-zA-Z0-9]/', '', trim($pathInfo, '/')) : '';
 
 // 参数校验
 if (empty($requestParams['url']) && empty($pathId)) {
@@ -101,7 +101,11 @@ function sendErrorResponse(string $message, int $code = 400): void
  */
 function parseLanzouUrl(string $url): string
 {
-    $path = explode('.com/', $url)[1] ?? '';
+    $path = parse_url($url, PHP_URL_PATH);
+    if ($path === false || $path === null) {
+        sendErrorResponse('非法的蓝奏云链接', 400);
+    }
+    $path = trim($path, '/');
     return 'https://www.lanzouf.com/' . $path;
 }
 
