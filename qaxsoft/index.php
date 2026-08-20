@@ -5,7 +5,7 @@ $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
 // 支持路径参数 /qaxsoft/{softid}
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';
-$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+$pathId = !empty($pathInfo) ? preg_replace('/[^a-zA-Z0-9]/', '', trim($pathInfo, '/')) : '';
 
 // 输入参数
 $softid = $pathId ?: ($_GET['softid'] ?? '');

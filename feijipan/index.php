@@ -15,7 +15,7 @@ $type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 支持路径参数 /feijipan/{shareId}
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';
-$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+$pathId = !empty($pathInfo) ? preg_replace('/[^a-zA-Z0-9]/', '', trim($pathInfo, '/')) : '';
 
 // 参数校验
 if (empty($url) && empty($pathId)) {
