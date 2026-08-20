@@ -314,18 +314,20 @@ function postRequest(array $data, string $url, string $referer = ''): string
 }
 
 /**
- * 解析落地页，返回最终 CDN 直链
+ * 解析落地页，返回最终 CDN 直链（cookie 经 curl 共享句柄驻留内存，不落盘临时文件）
  */
 function resolveFinalDownloadUrl(string $landingUrl): string
 {
-    $cookieFile = sys_get_temp_dir() . '/lanzou_' . md5($landingUrl . microtime(true)) . '.txt';
+    $share = curl_share_init();
+    curl_share_setopt($share, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
+
     $commonHeaders = [
         'X-FORWARDED-FOR: ' . generateRandomIP(),
         'CLIENT-IP: ' . generateRandomIP()
     ];
 
-    // 第一次访问落地页，取得 down_ip cookie
-    fetchEffectiveUrl($landingUrl, $cookieFile, $commonHeaders);
+    // 第一次访问落地页，取得 down_ip cookie（存进共享内存）
+    fetchEffectiveUrl($landingUrl, $share, $commonHeaders);
 
     // 第二次带浏览器导航特征头，跟随 302 拿到真实 CDN 直链
     $browserHeaders = array_merge($commonHeaders, [
@@ -336,16 +338,16 @@ function resolveFinalDownloadUrl(string $landingUrl): string
         'Sec-Fetch-Site: cross-site',
         'Upgrade-Insecure-Requests: 1',
     ]);
-    $finalUrl = fetchEffectiveUrl($landingUrl, $cookieFile, $browserHeaders);
+    $finalUrl = fetchEffectiveUrl($landingUrl, $share, $browserHeaders);
 
-    @unlink($cookieFile);
+    curl_share_close($share);
     return $finalUrl ?: $landingUrl;
 }
 
 /**
- * 带 cookie 请求并返回最终有效 URL
+ * 带共享 cookie 请求并返回最终有效 URL（cookie 全程在内存，不落盘）
  */
-function fetchEffectiveUrl(string $url, string $cookieFile, array $headers): string
+function fetchEffectiveUrl(string $url, $share, array $headers): string
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -353,8 +355,8 @@ function fetchEffectiveUrl(string $url, string $cookieFile, array $headers): str
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_ENCODING       => '',
-        CURLOPT_COOKIEJAR      => $cookieFile,
-        CURLOPT_COOKIEFILE     => $cookieFile,
+        CURLOPT_COOKIEFILE     => '',   // 启用内存 cookie 引擎，不读写任何文件
+        CURLOPT_SHARE          => $share,
         CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_TIMEOUT        => 30,
@@ -370,6 +372,7 @@ function fetchEffectiveUrl(string $url, string $cookieFile, array $headers): str
         if ($i < $maxRetries) usleep($retryDelay * 1000);
     }
     $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+    curl_close($ch);
     return is_string($effectiveUrl) ? $effectiveUrl : '';
 }
 
