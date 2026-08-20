@@ -15,7 +15,7 @@ $type = trim(strip_tags($_GET['type'] ?? 'down'));
 
 // 支持路径参数 /ilanzou/{shareId}
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';
-$pathId = !empty($pathInfo) ? trim($pathInfo, '/') : '';
+$pathId = !empty($pathInfo) ? preg_replace('/[^a-zA-Z0-9]/', '', trim($pathInfo, '/')) : '';
 
 // 参数校验
 if (empty($url) && empty($pathId)) {
@@ -60,8 +60,9 @@ $uuid = generateUuid();
 $timestamp = (string)(int)(microtime(true) * 1000);
 $ts = aesEncrypt2Hex($timestamp);
 
-// Cookie 文件（跨请求保持 session）
-$cookieFile = sys_get_temp_dir() . '/ilanzou_' . md5($uuid) . '.txt';
+// 共享 cookie 句柄（跨请求保持 session，cookie 全程驻留内存，不落盘临时文件）
+$cookieShare = curl_share_init();
+curl_share_setopt($cookieShare, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
 
 // 公共查询参数
 $commonParams = 'devType=6&devModel=Chrome&uuid=' . urlencode($uuid) . '&extra=2&timestamp=' . $ts;
@@ -89,7 +90,7 @@ $apiHeaders = [
 
 // 1. 请求 vip/list（建立 session，获取 cookie）
 $vipUrl = 'https://api.ilanzou.com/unproved/buy/vip/list?' . $commonParams;
-curlRequest($vipUrl, 'POST', $apiHeaders, $cookieFile);
+curlRequest($vipUrl, 'POST', $apiHeaders, $cookieShare);
 
 // 2. 请求 recommend/list 获取文件信息
 $recommendParams = $commonParams . '&shareId=' . $shareId . '&type=0&offset=1&limit=60';
@@ -97,7 +98,7 @@ if (!empty($pwd)) {
     $recommendParams .= '&code=' . urlencode($pwd);
 }
 $recommendUrl = 'https://api.ilanzou.com/unproved/recommend/list?' . $recommendParams;
-$recommendResponse = curlRequest($recommendUrl, 'POST', $apiHeaders, $cookieFile);
+$recommendResponse = curlRequest($recommendUrl, 'POST', $apiHeaders, $cookieShare);
 if (empty($recommendResponse['body'])) {
     sendErrorResponse('获取分享信息失败', 500, 'HTTP ' . ($recommendResponse['code'] ?? 0));
 }
@@ -158,14 +159,14 @@ $redirectParams = 'downloadId=' . urlencode($fidEncode) . '&enable=1&devType=6&u
 $redirectUrl = 'https://api.ilanzou.com/unproved/file/redirect?' . $redirectParams;
 
 // 获取重定向 Location
-$redirectResponse = curlRequest($redirectUrl, 'GET', $apiHeaders, $cookieFile);
+$redirectResponse = curlRequest($redirectUrl, 'GET', $apiHeaders, $cookieShare);
 $downUrl = '';
 if (preg_match('/Location:\s*(.+)/i', $redirectResponse['headers'] ?? '', $matches)) {
     $downUrl = trim($matches[1]);
 }
 
-// 清理 cookie 文件
-@unlink($cookieFile);
+// 释放共享 cookie 句柄（cookie 全程在内存，无需删除任何文件）
+curl_share_close($cookieShare);
 
 if (empty($downUrl)) {
     sendErrorResponse('未获取到下载链接', 500, 'HTTP ' . ($redirectResponse['code'] ?? 0) . ' body: ' . ($redirectResponse['body'] ?? ''));
@@ -231,22 +232,26 @@ function aesEncrypt2Hex(string $source): string
 
 function generateUuid(): string
 {
-    return strtolower(sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+    return strtolower(sprintf(
+        '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff),
         mt_rand(0, 0xffff),
         mt_rand(0, 0x0fff) | 0x4000,
         mt_rand(0, 0x3fff) | 0x8000,
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff)
     ));
 }
 
 /**
- * 统一 HTTP 请求函数（带 cookie 持久化）
+ * 统一 HTTP 请求函数（通过共享句柄在内存中持久化 cookie，不落盘临时文件）
  */
-function curlRequest(string $url, string $method = 'GET', array $headers = [], string $cookieFile = ''): array
+function curlRequest(string $url, string $method = 'GET', array $headers = [], $share = null): array
 {
     $ch = curl_init($url);
-    curl_setopt_array($ch, [
+    $opts = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HEADER         => true,
         CURLOPT_FOLLOWLOCATION => false,
@@ -256,12 +261,12 @@ function curlRequest(string $url, string $method = 'GET', array $headers = [], s
         CURLOPT_ENCODING       => '',
         CURLOPT_PROXY          => '',
         CURLOPT_HTTPHEADER     => $headers,
-    ]);
-
-    if (!empty($cookieFile)) {
-        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
+        CURLOPT_COOKIEFILE     => '',   // 启用内存 cookie 引擎，不读写任何文件
+    ];
+    if ($share !== null) {
+        $opts[CURLOPT_SHARE] = $share;  // 跨请求共享 cookie（驻留内存）
     }
+    curl_setopt_array($ch, $opts);
 
     if ($method === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);
