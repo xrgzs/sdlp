@@ -351,7 +351,7 @@ function resolveFinalDownloadUrl(string $landingUrl): string
 /**
  * 带共享 cookie 请求并返回最终有效 URL（cookie 全程在内存，不落盘）
  */
-function fetchEffectiveUrl(string $url, $share, array $headers): string
+function fetchEffectiveUrl(string $url, CurlShareHandle $share, array $headers): string
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
