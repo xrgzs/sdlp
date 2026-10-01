@@ -8,6 +8,8 @@ header('Content-Type: application/json; charset=utf-8');
 const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0';
 const CACHE_PREFIX = 'lanzou_';
 const CACHE_TTL = 600;
+const LANZOU_BASE_URL = 'https://www.lanzouo.com';
+const LANZOU_AJAX_BASE_URL = 'https://apifile.woozooo.com';
 
 // 获取请求参数
 $requestParams = [
@@ -35,7 +37,7 @@ if (!in_array($requestParams['type'], ['down', 'json'])) {
 
 // 如果是路径参数，构建完整URL
 if (!empty($pathId)) {
-    $requestParams['url'] = 'https://www.lanzoup.com/' . $pathId;
+    $requestParams['url'] = LANZOU_BASE_URL . '/' . $pathId;
 }
 
 // apcu_clear_cache();
@@ -101,12 +103,21 @@ function sendErrorResponse(string $message, int $code = 400): void
  */
 function parseLanzouUrl(string $url): string
 {
-    $path = parse_url($url, PHP_URL_PATH);
-    if ($path === false || $path === null) {
+    $parts = parse_url($url);
+    $host = strtolower($parts['host'] ?? '');
+    if (
+        $parts === false
+        || !in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+        || !preg_match('/^(?:[a-z0-9-]+\.)*lanzou[a-z]?\.com$/i', $host)
+        || empty($parts['path'])
+        || isset($parts['user'])
+        || isset($parts['pass'])
+        || isset($parts['port'])
+    ) {
         sendErrorResponse('非法的蓝奏云链接', 400);
     }
-    $path = trim($path, '/');
-    return 'https://www.lanzouf.com/' . $path;
+
+    return LANZOU_BASE_URL . '/' . trim($parts['path'], '/');
 }
 
 /**
@@ -159,6 +170,9 @@ function handlePasswordProtectedFile(string $content, string $password, string $
 
     preg_match('/var isngis\s*=\s*\'([^\']+)\'/', $content, $signMatches);
     preg_match('/\/ajaxfile\.php\?file=(\d+)/', $content, $fileIdMatches);
+    if (empty($fileIdMatches[1])) {
+        sendErrorResponse('未找到文件下载信息', 500);
+    }
 
     $postData = [
         'action' => 'downprocess',
@@ -166,7 +180,7 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         'kd'     => 1,
         'p'      => $password
     ];
-    $apiResponse = postRequest($postData, 'https://www.lanzouf.com/ajaxfile.php?file=' . ($fileIdMatches[1] ?? ''), $referer);
+    $apiResponse = postRequest($postData, LANZOU_AJAX_BASE_URL . '/ajaxfile.php?file=' . $fileIdMatches[1], $referer);
     $responseData = json_decode($apiResponse, true);
 
     if (($responseData['zt'] ?? 0) != 1) {
@@ -189,16 +203,16 @@ function handlePasswordProtectedFile(string $content, string $password, string $
  */
 function handlePublicFile(string $content, string $referer, array &$fileInfo): void
 {
-    if (!preg_match('/<iframe[^>]*src="(\/[^"]+|https:\/\/[^"]+)"/', $content, $iframeMatches)) {
+    if (!preg_match('/<iframe\b[^>]*\bsrc=["\']([^"\']+)["\']/i', $content, $iframeMatches)) {
         sendErrorResponse('未找到下载 iframe', 500);
     }
     $iframePath = $iframeMatches[1];
-    $iframeUrl = str_starts_with($iframePath, 'http') ? $iframePath : 'https://www.lanzouf.com' . $iframePath;
+    $iframeUrl = resolveLanzouUrl($iframePath);
 
     $iframeContent = fetchPageContent($iframeUrl, $referer);
 
-    if (preg_match('/id="tourl"[\s\S]*?href="(https:\/\/[^"]+)"/', $iframeContent, $tourlMatches)) {
-        $fileInfo['downUrl'] = $tourlMatches[1];
+    if (preg_match('/id=["\']tourl["\'][\s\S]*?href=["\'](https:\/\/[^"\']+)["\']/i', $iframeContent, $tourlMatches)) {
+        $fileInfo['downUrl'] = html_entity_decode($tourlMatches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
         return;
     }
 
@@ -208,6 +222,10 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
     preg_match('/var kdns\s*=\s*(\d+)/', $iframeContent, $kdnsMatches);
     preg_match('/var down_3\s*=\s*\'([^\']*)\'/', $iframeContent, $suffix3Matches);
     preg_match('/var down_1\s*=\s*\'([^\']*)\'/', $iframeContent, $suffix1Matches);
+
+    if (empty($fileIdMatches[1])) {
+        sendErrorResponse('未找到文件下载信息', 500);
+    }
 
     $postData = [
         'action'     => 'downprocess',
@@ -219,7 +237,7 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
         'ves'        => 1
     ];
 
-    $apiResponse = postRequest($postData, 'https://www.lanzouf.com/ajaxfile.php?file=' . ($fileIdMatches[1] ?? ''), $iframeUrl);
+    $apiResponse = postRequest($postData, LANZOU_AJAX_BASE_URL . '/ajaxfile.php?file=' . $fileIdMatches[1], LANZOU_BASE_URL . '/');
     $responseData = json_decode($apiResponse, true);
 
     if (($responseData['zt'] ?? 0) != 1) {
@@ -232,6 +250,33 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
     $suffix = $suffix3Matches[1] ?? ($suffix1Matches[1] ?? '');
     $landingUrl = $responseData['dom'] . '/file/' . $responseData['url'] . $suffix;
     $fileInfo['downUrl'] = resolveFinalDownloadUrl($landingUrl);
+}
+
+/**
+ * 将 iframe 地址解析为绝对URL
+ */
+function resolveLanzouUrl(string $url): string
+{
+    if (str_starts_with($url, '//')) {
+        $url = 'https:' . $url;
+    }
+
+    $parts = parse_url($url);
+    if ($parts === false) {
+        sendErrorResponse('下载 iframe 地址无效', 500);
+    }
+
+    if (isset($parts['host']) && !preg_match('/^(?:[a-z0-9-]+\.)*lanzou[a-z]?\.com$/i', $parts['host'])) {
+        sendErrorResponse('下载 iframe 域名无效', 500);
+    }
+
+    $path = $parts['path'] ?? '';
+    if ($path === '') {
+        sendErrorResponse('下载 iframe 地址无效', 500);
+    }
+
+    $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+    return LANZOU_BASE_URL . '/' . ltrim($path, '/') . $query;
 }
 
 /**
@@ -261,17 +306,16 @@ function processApiResponse(array $fileInfo, string $requestType): void
 function fetchPageContent(string $url, string $referer = '', array $headers = []): string
 {
     $ch = curl_init($url);
-    $requestHeaders = array_merge([
-        'X-FORWARDED-FOR: ' . generateRandomIP(),
-        'CLIENT-IP: ' . generateRandomIP()
-    ], $headers);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_ENCODING       => '',
         CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
-        CURLOPT_HTTPHEADER     => $requestHeaders,
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_COOKIEFILE     => '',
+        CURLOPT_SHARE          => getCurlCookieShare(),
+        CURLOPT_TIMEOUT        => 30,
     ]);
     if (!empty($referer)) {
         curl_setopt($ch, CURLOPT_REFERER, $referer);
@@ -284,6 +328,13 @@ function fetchPageContent(string $url, string $referer = '', array $headers = []
         if ($response !== false && curl_errno($ch) === 0) break;
         if ($i < $maxRetries) usleep($retryDelay * 1000);
     }
+    if ($response === false) {
+        $error = curl_error($ch);
+        curl_close($ch);
+        sendErrorResponse('蓝奏云请求失败：' . $error, 502);
+    }
+    $response = retryAfterAcwChallenge($ch, $url, $response);
+    curl_close($ch);
     return $response;
 }
 
@@ -302,9 +353,13 @@ function postRequest(array $data, string $url, string $referer = ''): string
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_ENCODING       => '',
         CURLOPT_HTTPHEADER     => [
-            'X-FORWARDED-FOR: ' . generateRandomIP(),
-            'CLIENT-IP: ' . generateRandomIP()
-        ]
+            'Accept: application/json, text/javascript, */*',
+            'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With: XMLHttpRequest',
+        ],
+        CURLOPT_COOKIEFILE     => '',
+        CURLOPT_SHARE          => getCurlCookieShare(),
+        CURLOPT_TIMEOUT        => 30,
     ]);
     $maxRetries = 2;
     $retryDelay = 300;
@@ -314,6 +369,94 @@ function postRequest(array $data, string $url, string $referer = ''): string
         if ($response !== false && curl_errno($ch) === 0) break;
         if ($i < $maxRetries) usleep($retryDelay * 1000);
     }
+    if ($response === false) {
+        $error = curl_error($ch);
+        curl_close($ch);
+        sendErrorResponse('蓝奏云下载接口请求失败：' . $error, 502);
+    }
+    $response = retryAfterAcwChallenge($ch, $url, $response);
+    curl_close($ch);
+    return $response;
+}
+
+/**
+ * 在请求间共享内存中的蓝奏云验证 cookie
+ */
+function getCurlCookieShare(): CurlShareHandle
+{
+    static $share = null;
+    if ($share === null) {
+        $share = curl_share_init();
+        if (!curl_share_setopt($share, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE)) {
+            sendErrorResponse('无法初始化蓝奏云 cookie 会话', 500);
+        }
+    }
+
+    return $share;
+}
+
+/**
+ * 计算蓝奏云 WAF 返回的 acw_sc__v2 挑战 cookie
+ */
+function createAcwScCookie(string $arg1): string
+{
+    $permutation = [
+        15, 35, 29, 24, 33, 16, 1, 38, 10, 9,
+        19, 31, 40, 27, 22, 23, 25, 13, 6, 11,
+        39, 18, 20, 8, 14, 21, 32, 26, 2, 30,
+        7, 4, 17, 5, 3, 28, 34, 37, 12, 36,
+    ];
+    $key = '3000176000856006061501533003690027800375';
+    $arg1 = strtolower($arg1);
+    if (strlen($arg1) !== 40 || !ctype_xdigit($arg1)) {
+        sendErrorResponse('蓝奏云验证参数无效', 502);
+    }
+
+    $shuffled = '';
+    foreach ($permutation as $position) {
+        $shuffled .= $arg1[$position - 1];
+    }
+
+    $cookie = '';
+    for ($i = 0; $i < 40; $i += 2) {
+        $cookie .= sprintf(
+            '%02x',
+            hexdec(substr($shuffled, $i, 2)) ^ hexdec(substr($key, $i, 2))
+        );
+    }
+
+    return $cookie;
+}
+
+/**
+ * 遇到首次 JavaScript 验证时计算 cookie 并在同一会话重试
+ */
+function retryAfterAcwChallenge(CurlHandle $ch, string $url, string $response): string
+{
+    if (!preg_match('/<script>\s*var\s+arg1\s*=\s*[\'"]([a-f0-9]{40})[\'"]/i', $response, $matches)) {
+        return $response;
+    }
+
+    $host = parse_url($url, PHP_URL_HOST);
+    if (!is_string($host) || $host === '') {
+        sendErrorResponse('蓝奏云验证域名无效', 502);
+    }
+
+    $cookie = createAcwScCookie($matches[1]);
+    $expires = gmdate('D, d M Y H:i:s', time() + 3600) . ' GMT';
+    $cookieLine = 'Set-Cookie: acw_sc__v2=' . $cookie . '; domain=' . $host . '; path=/; expires=' . $expires;
+    if (!curl_setopt($ch, CURLOPT_COOKIELIST, $cookieLine)) {
+        sendErrorResponse('无法设置蓝奏云验证 cookie', 502);
+    }
+
+    $response = curl_exec($ch);
+    if ($response === false || curl_errno($ch) !== 0) {
+        sendErrorResponse('蓝奏云验证请求失败：' . curl_error($ch), 502);
+    }
+    if (preg_match('/<script>\s*var\s+arg1\s*=\s*[\'"]([a-f0-9]{40})[\'"]/i', $response)) {
+        sendErrorResponse('蓝奏云验证未通过', 502);
+    }
+
     return $response;
 }
 
@@ -322,29 +465,22 @@ function postRequest(array $data, string $url, string $referer = ''): string
  */
 function resolveFinalDownloadUrl(string $landingUrl): string
 {
-    $share = curl_share_init();
-    curl_share_setopt($share, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
-
-    $commonHeaders = [
-        'X-FORWARDED-FOR: ' . generateRandomIP(),
-        'CLIENT-IP: ' . generateRandomIP()
-    ];
+    $share = getCurlCookieShare();
 
     // 第一次访问落地页，取得 down_ip cookie（存进共享内存）
-    fetchEffectiveUrl($landingUrl, $share, $commonHeaders);
+    fetchEffectiveUrl($landingUrl, $share, []);
 
     // 第二次带浏览器导航特征头，跟随 302 拿到真实 CDN 直链
-    $browserHeaders = array_merge($commonHeaders, [
+    $browserHeaders = [
         'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
         'Sec-Fetch-Dest: document',
         'Sec-Fetch-Mode: navigate',
         'Sec-Fetch-Site: cross-site',
         'Upgrade-Insecure-Requests: 1',
-    ]);
+    ];
     $finalUrl = fetchEffectiveUrl($landingUrl, $share, $browserHeaders);
 
-    curl_share_close($share);
     return $finalUrl ?: $landingUrl;
 }
 
@@ -378,18 +514,4 @@ function fetchEffectiveUrl(string $url, CurlShareHandle $share, array $headers):
     $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     curl_close($ch);
     return is_string($effectiveUrl) ? $effectiveUrl : '';
-}
-
-/**
- * 生成随机IP
- */
-function generateRandomIP(): string
-{
-    $ipSegments = [
-        mt_rand(218, 222),
-        mt_rand(0, 255),
-        mt_rand(0, 255),
-        mt_rand(0, 255)
-    ];
-    return implode('.', $ipSegments);
 }
