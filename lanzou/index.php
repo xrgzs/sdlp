@@ -10,6 +10,7 @@ const CACHE_PREFIX = 'lanzou_';
 const CACHE_TTL = 600;
 const LANZOU_BASE_URL = 'https://www.lanzouo.com';
 const LANZOU_AJAX_BASE_URL = 'https://apifile.woozooo.com';
+const LANZOU_AJAX_FALLBACK_URL = 'https://apifile.lanzouw.com';
 
 // 获取请求参数
 $requestParams = [
@@ -180,7 +181,14 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         'kd'     => 1,
         'p'      => $password
     ];
-    $apiResponse = postRequest($postData, LANZOU_AJAX_BASE_URL . '/ajaxfile.php?file=' . $fileIdMatches[1], $referer);
+    $ajaxPath = '/ajaxfile.php?file=' . $fileIdMatches[1];
+    $apiResponse = postRequest(
+        $postData,
+        LANZOU_AJAX_BASE_URL . $ajaxPath,
+        $referer,
+        '',
+        LANZOU_AJAX_FALLBACK_URL . $ajaxPath
+    );
     $responseData = json_decode($apiResponse, true);
 
     if (($responseData['zt'] ?? 0) != 1) {
@@ -194,8 +202,8 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         sendErrorResponse('下载链接缺失', 500);
     }
 
-    $landingUrl = $responseData['dom'] . '/file/' . $responseData['url'];
-    $fileInfo['downUrl'] = resolveFinalDownloadUrl($landingUrl);
+    $downloadUrl = buildLanzouDownloadUrl($responseData['dom'], $responseData['url']);
+    $fileInfo['downUrl'] = resolveDirectDownloadUrl($downloadUrl, $responseData['dom']);
 }
 
 /**
@@ -212,7 +220,16 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
     $iframeContent = fetchPageContent($iframeUrl, $referer);
 
     if (preg_match('/id=["\']tourl["\'][\s\S]*?href=["\'](https:\/\/[^"\']+)["\']/i', $iframeContent, $tourlMatches)) {
-        $fileInfo['downUrl'] = html_entity_decode($tourlMatches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $landingUrl = html_entity_decode($tourlMatches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $landingParts = parse_url($landingUrl);
+        if ($landingParts === false || empty($landingParts['host'])) {
+            sendErrorResponse('下载地址无效', 502);
+        }
+        $landingBase = 'https://' . $landingParts['host'];
+        if (isset($landingParts['port'])) {
+            $landingBase .= ':' . $landingParts['port'];
+        }
+        $fileInfo['downUrl'] = resolveDirectDownloadUrl($landingUrl, $landingBase);
         return;
     }
 
@@ -237,7 +254,14 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
         'ves'        => 1
     ];
 
-    $apiResponse = postRequest($postData, LANZOU_AJAX_BASE_URL . '/ajaxfile.php?file=' . $fileIdMatches[1], LANZOU_BASE_URL . '/');
+    $ajaxPath = '/ajaxfile.php?file=' . $fileIdMatches[1];
+    $apiResponse = postRequest(
+        $postData,
+        LANZOU_AJAX_BASE_URL . $ajaxPath,
+        LANZOU_BASE_URL . '/',
+        '',
+        LANZOU_AJAX_FALLBACK_URL . $ajaxPath
+    );
     $responseData = json_decode($apiResponse, true);
 
     if (($responseData['zt'] ?? 0) != 1) {
@@ -248,8 +272,38 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
     }
 
     $suffix = $suffix3Matches[1] ?? ($suffix1Matches[1] ?? '');
-    $landingUrl = $responseData['dom'] . '/file/' . $responseData['url'] . $suffix;
-    $fileInfo['downUrl'] = resolveFinalDownloadUrl($landingUrl);
+    $downloadUrl = buildLanzouDownloadUrl($responseData['dom'], $responseData['url'] . $suffix);
+    $fileInfo['downUrl'] = resolveDirectDownloadUrl($downloadUrl, $responseData['dom']);
+}
+
+/**
+ * 构建上游返回的下载页地址，并限制目标域名以避免意外请求其他主机
+ */
+function buildLanzouDownloadUrl(string $domain, string $path): string
+{
+    $parts = parse_url($domain);
+    if (
+        $parts === false
+        || strtolower($parts['scheme'] ?? '') !== 'https'
+        || empty($parts['host'])
+        || isset($parts['user'])
+        || isset($parts['pass'])
+    ) {
+        sendErrorResponse('下载服务器地址无效', 502);
+    }
+
+    $host = strtolower($parts['host']);
+    $isLanrar = $host === 'lanrar.com' || str_ends_with($host, '.lanrar.com');
+    $isLanzouc = $host === 'lanzouc.com' || str_ends_with($host, '.lanzouc.com');
+    if (
+        (!$isLanrar && !$isLanzouc)
+        || (isset($parts['port']) && !($isLanzouc && (int)$parts['port'] === 661))
+    ) {
+        sendErrorResponse('下载服务器域名无效', 502);
+    }
+
+    $baseUrl = rtrim($domain, '/');
+    return $baseUrl . '/file/' . ltrim($path, '/');
 }
 
 /**
@@ -315,7 +369,6 @@ function fetchPageContent(string $url, string $referer = '', array $headers = []
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_COOKIEFILE     => '',
         CURLOPT_SHARE          => getCurlCookieShare(),
-        CURLOPT_TIMEOUT        => 30,
     ]);
     if (!empty($referer)) {
         curl_setopt($ch, CURLOPT_REFERER, $referer);
@@ -324,6 +377,7 @@ function fetchPageContent(string $url, string $referer = '', array $headers = []
     $retryDelay = 300;
     $response = false;
     for ($i = 0; $i <= $maxRetries; $i++) {
+        configureCurlTimeout($ch);
         $response = curl_exec($ch);
         if ($response !== false && curl_errno($ch) === 0) break;
         if ($i < $maxRetries) usleep($retryDelay * 1000);
@@ -341,42 +395,61 @@ function fetchPageContent(string $url, string $referer = '', array $headers = []
 /**
  * 执行POST请求（带重试）
  */
-function postRequest(array $data, string $url, string $referer = ''): string
-{
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => http_build_query($data),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_REFERER        => $referer,
-        CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_ENCODING       => '',
-        CURLOPT_HTTPHEADER     => [
-            'Accept: application/json, text/javascript, */*',
-            'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
-            'X-Requested-With: XMLHttpRequest',
-        ],
-        CURLOPT_COOKIEFILE     => '',
-        CURLOPT_SHARE          => getCurlCookieShare(),
-        CURLOPT_TIMEOUT        => 30,
-    ]);
-    $maxRetries = 2;
-    $retryDelay = 300;
-    $response = false;
-    for ($i = 0; $i <= $maxRetries; $i++) {
-        $response = curl_exec($ch);
-        if ($response !== false && curl_errno($ch) === 0) break;
-        if ($i < $maxRetries) usleep($retryDelay * 1000);
+function postRequest(
+    array $data,
+    string $url,
+    string $referer = '',
+    string $cookie = '',
+    string $fallbackUrl = ''
+) {
+    $urls = [$url];
+    if ($fallbackUrl !== '' && $fallbackUrl !== $url) {
+        $urls[] = $fallbackUrl;
     }
-    if ($response === false) {
-        $error = curl_error($ch);
+    $lastError = '';
+
+    foreach ($urls as $requestUrl) {
+        $ch = curl_init($requestUrl);
+        $options = [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($data),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_REFERER        => $referer,
+            CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_HTTPHEADER     => [
+                'Accept: application/json, text/javascript, */*',
+                'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With: XMLHttpRequest',
+            ],
+            CURLOPT_COOKIEFILE     => '',
+            CURLOPT_SHARE          => getCurlCookieShare(),
+        ];
+        if ($cookie !== '') {
+            $options[CURLOPT_COOKIE] = $cookie;
+        }
+        curl_setopt_array($ch, $options);
+
+        $maxRetries = $fallbackUrl === '' ? 2 : 0;
+        $response = false;
+        for ($i = 0; $i <= $maxRetries; $i++) {
+            configureCurlTimeout($ch);
+            $response = curl_exec($ch);
+            if ($response !== false && curl_errno($ch) === 0) {
+                $response = retryAfterAcwChallenge($ch, $requestUrl, $response, $cookie);
+                curl_close($ch);
+                return $response;
+            }
+            $lastError = curl_error($ch);
+            if ($i < $maxRetries) {
+                usleep(300000);
+            }
+        }
         curl_close($ch);
-        sendErrorResponse('蓝奏云下载接口请求失败：' . $error, 502);
     }
-    $response = retryAfterAcwChallenge($ch, $url, $response);
-    curl_close($ch);
-    return $response;
+
+    sendErrorResponse('蓝奏云下载接口请求失败：' . $lastError, 502);
 }
 
 /**
@@ -393,6 +466,18 @@ function getCurlCookieShare(): CurlShareHandle
     }
 
     return $share;
+}
+
+/**
+ * Keep upstream waits within the current API request's time budget
+ */
+function configureCurlTimeout(CurlHandle $ch, int $maxSeconds = 8): void
+{
+    $timeout = $maxSeconds;
+    curl_setopt_array($ch, [
+        CURLOPT_CONNECTTIMEOUT => min(8, $timeout),
+        CURLOPT_TIMEOUT        => $timeout,
+    ]);
 }
 
 /**
@@ -431,7 +516,7 @@ function createAcwScCookie(string $arg1): string
 /**
  * 遇到首次 JavaScript 验证时计算 cookie 并在同一会话重试
  */
-function retryAfterAcwChallenge(CurlHandle $ch, string $url, string $response): string
+function retryAfterAcwChallenge(CurlHandle $ch, string $url, string $response, string $requestCookie = ''): string
 {
     if (!preg_match('/<script>\s*var\s+arg1\s*=\s*[\'"]([a-f0-9]{40})[\'"]/i', $response, $matches)) {
         return $response;
@@ -448,7 +533,12 @@ function retryAfterAcwChallenge(CurlHandle $ch, string $url, string $response): 
     if (!curl_setopt($ch, CURLOPT_COOKIELIST, $cookieLine)) {
         sendErrorResponse('无法设置蓝奏云验证 cookie', 502);
     }
+    $requestCookie = trim($requestCookie . '; acw_sc__v2=' . $cookie, '; ');
+    if (!curl_setopt($ch, CURLOPT_COOKIE, $requestCookie)) {
+        sendErrorResponse('无法发送蓝奏云验证 cookie', 502);
+    }
 
+    configureCurlTimeout($ch, 16);
     $response = curl_exec($ch);
     if ($response === false || curl_errno($ch) !== 0) {
         sendErrorResponse('蓝奏云验证请求失败：' . curl_error($ch), 502);
@@ -461,57 +551,153 @@ function retryAfterAcwChallenge(CurlHandle $ch, string $url, string $response): 
 }
 
 /**
- * 解析落地页，返回最终 CDN 直链（cookie 经 curl 共享句柄驻留内存，不落盘临时文件）
+ * 不跟随蓝奏下载页跳转，直接返回首个 302 的 CDN 地址
  */
-function resolveFinalDownloadUrl(string $landingUrl): string
+function resolveDirectDownloadUrl(string $downloadUrl, string $baseUrl)
 {
-    $share = getCurlCookieShare();
+    $baseParts = parse_url($baseUrl);
+    if (
+        $baseParts === false
+        || strtolower($baseParts['scheme'] ?? '') !== 'https'
+        || empty($baseParts['host'])
+    ) {
+        sendErrorResponse('下载服务器地址无效', 502);
+    }
+    $host = strtolower($baseParts['host']);
+    $isLanrar = $host === 'lanrar.com' || str_ends_with($host, '.lanrar.com');
+    $isLanzouc = $host === 'lanzouc.com' || str_ends_with($host, '.lanzouc.com');
+    if (
+        (!$isLanrar && !$isLanzouc)
+        || (isset($baseParts['port']) && !($isLanzouc && (int)$baseParts['port'] === 661))
+    ) {
+        sendErrorResponse('下载服务器域名无效', 502);
+    }
 
-    // 第一次访问落地页，取得 down_ip cookie（存进共享内存）
-    fetchEffectiveUrl($landingUrl, $share, []);
+    $referer = rtrim($baseUrl, '/');
+    $challengeCookie = '';
 
-    // 第二次带浏览器导航特征头，跟随 302 拿到真实 CDN 直链
-    $browserHeaders = [
-        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8',
-        'Sec-Fetch-Dest: document',
-        'Sec-Fetch-Mode: navigate',
-        'Sec-Fetch-Site: cross-site',
-        'Upgrade-Insecure-Requests: 1',
-    ];
-    $finalUrl = fetchEffectiveUrl($landingUrl, $share, $browserHeaders);
+    for ($attempt = 0; $attempt < 3; $attempt++) {
+        $ch = curl_init($downloadUrl);
+        $headers = [
+            'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        ];
+        $cookie = 'down_ip=1';
+        if ($challengeCookie !== '') {
+            $cookie .= '; acw_sc__v2=' . $challengeCookie;
+        }
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER         => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_COOKIE         => $cookie,
+            CURLOPT_COOKIEFILE     => '',
+            CURLOPT_SHARE          => getCurlCookieShare(),
+            CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
+            CURLOPT_REFERER        => $referer,
+            CURLOPT_HTTPHEADER     => $headers,
+        ]);
+        configureCurlTimeout($ch);
+        $body = curl_exec($ch);
+        if ($body === false || curl_errno($ch) !== 0) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            sendErrorResponse('获取直链失败：' . $error, 502);
+        }
 
-    return $finalUrl ?: $landingUrl;
+        $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $responseHeaders = substr((string)$body, 0, $headerSize);
+        $body = substr((string)$body, $headerSize);
+        $location = '';
+        if (preg_match_all('/^Location:\s*(.+)$/im', $responseHeaders, $locationMatches)) {
+            $location = trim(end($locationMatches[1]));
+        }
+        curl_close($ch);
+
+        if ($status >= 300 && $status < 400 && $location !== '') {
+            return resolveRedirectUrl($downloadUrl, $location);
+        }
+
+        if (preg_match('/<script>\s*var\s+arg1\s*=\s*[\'"]([a-f0-9]{40})[\'"]/i', (string)$body, $matches)) {
+            $challengeCookie = createAcwScCookie($matches[1]);
+            continue;
+        }
+
+        return requestSecondaryDownloadUrl((string)$body, $baseUrl);
+    }
+
+    sendErrorResponse('下载链接验证失败', 502);
 }
 
 /**
- * 带共享 cookie 请求并返回最终有效 URL（cookie 全程在内存，不落盘）
+ * 解析HTTP重定向地址，但不再向目标地址发起请求
  */
-function fetchEffectiveUrl(string $url, CurlShareHandle $share, array $headers): string
+function resolveRedirectUrl(string $requestUrl, string $location): string
 {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => false,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_ENCODING       => '',
-        CURLOPT_COOKIEFILE     => '',   // 启用内存 cookie 引擎，不读写任何文件
-        CURLOPT_SHARE          => $share,
-        CURLOPT_USERAGENT      => DEFAULT_USER_AGENT,
-        CURLOPT_HTTPHEADER     => $headers,
-        CURLOPT_TIMEOUT        => 30,
-        CURLOPT_WRITEFUNCTION  => static function ($ch, $data) {
-            return strlen($data);
-        },
-    ]);
-    $maxRetries = 2;
-    $retryDelay = 300;
-    for ($i = 0; $i <= $maxRetries; $i++) {
-        curl_exec($ch);
-        if (curl_errno($ch) === 0) break;
-        if ($i < $maxRetries) usleep($retryDelay * 1000);
+    if (preg_match('/^https?:\/\//i', $location)) {
+        return $location;
     }
-    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-    curl_close($ch);
-    return is_string($effectiveUrl) ? $effectiveUrl : '';
+
+    $parts = parse_url($requestUrl);
+    if ($parts === false || empty($parts['scheme']) || empty($parts['host'])) {
+        sendErrorResponse('下载重定向地址无效', 502);
+    }
+
+    if (str_starts_with($location, '//')) {
+        return $parts['scheme'] . ':' . $location;
+    }
+
+    $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+    if (str_starts_with($location, '/')) {
+        return $parts['scheme'] . '://' . $parts['host'] . $port . $location;
+    }
+
+    $path = $parts['path'] ?? '/';
+    $directory = substr($path, 0, (int)strrpos($path, '/') + 1);
+    return $parts['scheme'] . '://' . $parts['host'] . $port . $directory . $location;
+}
+
+/**
+ * 处理Go实现中的二次下载验证表单
+ * 
+ * 参考：https://github.com/OpenListTeam/OpenList/blob/main/drivers/lanzou/util.go
+ */
+function requestSecondaryDownloadUrl(string $html, string $baseUrl)
+{
+    $params = [];
+    if (preg_match_all('/<input\b[^>]*>/i', $html, $inputs)) {
+        foreach ($inputs[0] as $input) {
+            if (
+                preg_match('/\bname\s*=\s*["\']([^"\']+)["\']/i', $input, $name)
+                && preg_match('/\bvalue\s*=\s*["\']([^"\']*)["\']/i', $input, $value)
+            ) {
+                $params[html_entity_decode($name[1], ENT_QUOTES | ENT_HTML5, 'UTF-8')] =
+                    html_entity_decode($value[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+    }
+
+    if (empty($params)) {
+        sendErrorResponse('未找到直链或二次验证参数', 502);
+    }
+
+    $params['el'] = '2';
+    $ajaxUrl = rtrim($baseUrl, '/') . '/ajax.php';
+    $referer = rtrim($baseUrl, '/') . '/';
+
+    for ($attempt = 0; $attempt < 2; $attempt++) {
+        if ($attempt > 0) {
+            usleep(2000000);
+        }
+
+        $response = postRequest($params, $ajaxUrl, $referer, 'down_ip=1');
+        $data = json_decode($response, true);
+        if (is_array($data) && !empty($data['url'])) {
+            return (string)$data['url'];
+        }
+    }
+
+    sendErrorResponse($data['inf'] ?? '获取直链失败', 502);
 }
