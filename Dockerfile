@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp
+FROM dunglas/frankenphp:php8.5
 
 RUN install-php-extensions apcu
 
