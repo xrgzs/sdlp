@@ -118,7 +118,7 @@ function parseLanzouUrl(string $url): string
         sendErrorResponse('非法的蓝奏云链接', 400);
     }
 
-    return LANZOU_BASE_URL . '/' . trim($parts['path'], '/');
+    return 'https://' . $host . '/' . trim($parts['path'], '/');
 }
 
 /**
@@ -170,8 +170,8 @@ function handlePasswordProtectedFile(string $content, string $password, string $
     }
 
     preg_match('/var isngis\s*=\s*\'([^\']+)\'/', $content, $signMatches);
-    preg_match('/\/ajaxfile\.php\?file=(\d+)/', $content, $fileIdMatches);
-    if (empty($fileIdMatches[1])) {
+    preg_match('/\/(ajaxfiles?)\.php\?file=(\d+)/i', $content, $fileIdMatches);
+    if (empty($fileIdMatches[2])) {
         sendErrorResponse('未找到文件下载信息', 500);
     }
 
@@ -181,7 +181,7 @@ function handlePasswordProtectedFile(string $content, string $password, string $
         'kd'     => 1,
         'p'      => $password
     ];
-    $ajaxPath = '/ajaxfile.php?file=' . $fileIdMatches[1];
+    $ajaxPath = '/' . strtolower($fileIdMatches[1]) . '.php?file=' . $fileIdMatches[2];
     $apiResponse = postRequest(
         $postData,
         LANZOU_AJAX_BASE_URL . $ajaxPath,
@@ -215,7 +215,7 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
         sendErrorResponse('未找到下载 iframe', 500);
     }
     $iframePath = $iframeMatches[1];
-    $iframeUrl = resolveLanzouUrl($iframePath);
+    $iframeUrl = resolveLanzouUrl($iframePath, $referer);
 
     $iframeContent = fetchPageContent($iframeUrl, $referer);
 
@@ -233,14 +233,14 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
         return;
     }
 
-    preg_match('/\/ajaxfile\.php\?file=(\d+)/', $iframeContent, $fileIdMatches);
+    preg_match('/\/(ajaxfiles?)\.php\?file=(\d+)/i', $iframeContent, $fileIdMatches);
     preg_match('/wp_sign\s*=\s*\'([^\']+)\'/', $iframeContent, $signMatches);
     preg_match('/ajaxdata\s*=\s*\'([^\']+)\'/', $iframeContent, $ajaxdataMatches);
     preg_match('/var kdns\s*=\s*(\d+)/', $iframeContent, $kdnsMatches);
     preg_match('/var down_3\s*=\s*\'([^\']*)\'/', $iframeContent, $suffix3Matches);
     preg_match('/var down_1\s*=\s*\'([^\']*)\'/', $iframeContent, $suffix1Matches);
 
-    if (empty($fileIdMatches[1])) {
+    if (empty($fileIdMatches[2])) {
         sendErrorResponse('未找到文件下载信息', 500);
     }
 
@@ -254,11 +254,11 @@ function handlePublicFile(string $content, string $referer, array &$fileInfo): v
         'ves'        => 1
     ];
 
-    $ajaxPath = '/ajaxfile.php?file=' . $fileIdMatches[1];
+    $ajaxPath = '/' . strtolower($fileIdMatches[1]) . '.php?file=' . $fileIdMatches[2];
     $apiResponse = postRequest(
         $postData,
         LANZOU_AJAX_BASE_URL . $ajaxPath,
-        LANZOU_BASE_URL . '/',
+        $iframeUrl,
         '',
         LANZOU_AJAX_FALLBACK_URL . $ajaxPath
     );
@@ -309,18 +309,25 @@ function buildLanzouDownloadUrl(string $domain, string $path): string
 /**
  * 将 iframe 地址解析为绝对URL
  */
-function resolveLanzouUrl(string $url): string
+function resolveLanzouUrl(string $url, string $baseUrl): string
 {
     if (str_starts_with($url, '//')) {
         $url = 'https:' . $url;
     }
 
     $parts = parse_url($url);
-    if ($parts === false) {
+    $baseParts = parse_url($baseUrl);
+    if ($parts === false || $baseParts === false || empty($baseParts['host'])) {
         sendErrorResponse('下载 iframe 地址无效', 500);
     }
 
-    if (isset($parts['host']) && !preg_match('/^(?:[a-z0-9-]+\.)*lanzou[a-z]?\.com$/i', $parts['host'])) {
+    $host = strtolower($parts['host'] ?? $baseParts['host']);
+    if (
+        !preg_match('/^(?:[a-z0-9-]+\.)*lanzou[a-z]?\.com$/i', $host)
+        || isset($parts['user'])
+        || isset($parts['pass'])
+        || isset($parts['port'])
+    ) {
         sendErrorResponse('下载 iframe 域名无效', 500);
     }
 
@@ -330,7 +337,7 @@ function resolveLanzouUrl(string $url): string
     }
 
     $query = isset($parts['query']) ? '?' . $parts['query'] : '';
-    return LANZOU_BASE_URL . '/' . ltrim($path, '/') . $query;
+    return 'https://' . $host . '/' . ltrim($path, '/') . $query;
 }
 
 /**
