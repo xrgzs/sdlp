@@ -1,5 +1,5 @@
 <?php
-// APCU 缓存配置
+// Yac 缓存配置
 $cacheKeyPrefix = '360baoku'; // 唯一缓存键名
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
@@ -27,10 +27,12 @@ $appId = filter_var($appId, FILTER_SANITIZE_NUMBER_INT);
 // 生成缓存键
 $cacheKey = $cacheKeyPrefix . $appId;
 
-// 尝试从 APCu 读取缓存
-if (function_exists('apcu_enabled') && apcu_enabled()) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $downloadUrl = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $downloadUrl = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($downloadUrl !== false ? 'HIT' : 'MISS'));
     if ($downloadUrl !== false) {
         if ($type === 'json') {
             header('Content-Type: application/json; charset=utf-8');
@@ -76,9 +78,9 @@ $downloadUrl = $jsonResponse['data']['soft_download'];
 // 替换下载地址
 $downloadUrl = str_replace('cds.360tpcdn.com', 'cdn-download.soft.360.cn', $downloadUrl);
 
-// 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && !empty($downloadUrl)) {
-    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
+// 将新数据存入 Yac 缓存
+if ($isYacEnabled && !empty($downloadUrl)) {
+    $yac->set($cacheKey, $downloadUrl, $cacheTTL);
 }
 
 // 返回响应

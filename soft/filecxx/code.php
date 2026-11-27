@@ -1,12 +1,14 @@
 <?php
-// APCU 缓存配置
+// Yac 缓存配置
 $cacheKey = 'filecxx_code'; // 唯一缓存键名
 $cacheTTL = 3600; // 缓存有效期 1 小时（秒）
 
-// 尝试从 APCu 读取缓存
-if (function_exists('apcu_enabled') && apcu_enabled()) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $cachedResult = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $cachedResult = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($cachedResult !== false ? 'HIT' : 'MISS'));
     if ($cachedResult !== false) {
         echo $cachedResult;
         exit;
@@ -68,8 +70,8 @@ foreach ($nodes as $node) {
 if (!empty($activationCodes)) {
     $result = $activationCodes[0] . PHP_EOL;
     // 仅在找到有效激活码时才缓存
-    if (function_exists('apcu_store') && !empty($activationCodes)) {
-        apcu_store($cacheKey, $result, $cacheTTL);
+    if ($isYacEnabled && !empty($activationCodes)) {
+        $yac->set($cacheKey, $result, $cacheTTL);
     }
 } else {
     $result = "No valid activation code found." . PHP_EOL;

@@ -1,12 +1,14 @@
 <?php
-// APCU 缓存配置
+// Yac 缓存配置
 $cacheKey = 'bing_wallpaper_today'; // 唯一缓存键名
 $cacheTTL = 43200; // 缓存有效期 12 小时（秒）
 
-// 尝试从 APCu 读取缓存
-if (function_exists('apcu_enabled') && apcu_enabled()) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $response = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $response = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($response !== false ? 'HIT' : 'MISS'));
     if ($response !== false && !empty($response)) {
         // 缓存命中，跳过 API 请求
         goto parse_json; // 直接进入解析阶段
@@ -52,8 +54,8 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // 验证数据完整性后再缓存
-if (function_exists('apcu_store') && isset($jsonResponse['images'][0]['urlbase'])) {
-    apcu_store($cacheKey, $response, $cacheTTL);
+if ($isYacEnabled && isset($jsonResponse['images'][0]['urlbase'])) {
+    $yac->set($cacheKey, $response, $cacheTTL);
 }
 
 // 获取下载地址

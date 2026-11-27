@@ -39,11 +39,12 @@ if (empty($shareKey)) {
 // 构建缓存 key
 $cacheKey = CACHE_PREFIX . md5($shareKey . $pwd);
 
-// 尝试从 APCu 读取缓存
-$isApcuEnabled = function_exists('apcu_enabled') && apcu_enabled();
-if ($isApcuEnabled) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $cachedData = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $cachedData = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($cachedData !== false ? 'HIT' : 'MISS'));
     if ($cachedData !== false) {
         if ($type === 'down') {
             $cachedJson = json_decode($cachedData, true);
@@ -119,8 +120,8 @@ $result = json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
 // 存储缓存
-if ($isApcuEnabled && !empty($downloadUrl)) {
-    apcu_store($cacheKey, $result, CACHE_TTL);
+if ($isYacEnabled && !empty($downloadUrl)) {
+    $yac->set($cacheKey, $result, CACHE_TTL);
 }
 
 // 302跳转

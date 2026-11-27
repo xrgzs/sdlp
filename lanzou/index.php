@@ -41,17 +41,17 @@ if (!empty($pathId)) {
     $requestParams['url'] = LANZOU_BASE_URL . '/' . $pathId;
 }
 
-// apcu_clear_cache();
 // 构建完整URL
 $parsedUrl = parseLanzouUrl($requestParams['url']);
 
 $cacheKey = CACHE_PREFIX . md5($parsedUrl . $requestParams['pwd']);
 
-// 尝试从 APCu 读取缓存
-$isApcuEnabled = function_exists('apcu_enabled') && apcu_enabled();
-if ($isApcuEnabled) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $cachedData = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $cachedData = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($cachedData !== false ? 'HIT' : 'MISS'));
     if ($cachedData !== false) {
         // 缓存命中，跳过 API 请求
         processApiResponse($cachedData, $requestParams['type']);
@@ -78,8 +78,8 @@ if (strpos($filePageContent, "function down_p(){") !== false) {
 }
 
 // 存储文件信息到缓存（验证数据有效性后再缓存）
-if ($isApcuEnabled && !empty($fileInfo['downUrl'])) {
-    apcu_store($cacheKey, $fileInfo, CACHE_TTL);
+if ($isYacEnabled && !empty($fileInfo['downUrl'])) {
+    $yac->set($cacheKey, $fileInfo, CACHE_TTL);
 }
 // 处理API响应
 processApiResponse($fileInfo, $requestParams['type']);

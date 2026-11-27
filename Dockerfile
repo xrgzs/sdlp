@@ -1,6 +1,6 @@
-FROM dunglas/frankenphp:php8.5
+FROM dunglas/frankenphp:php8.6
 
-RUN install-php-extensions apcu
+RUN install-php-extensions yac
 
 ENV SERVER_NAME=:80
 

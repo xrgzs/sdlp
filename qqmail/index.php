@@ -35,11 +35,12 @@ $code = $queryParams['code'] ?? '';
 // 构建缓存 key（使用 k 参数或完整 URL 的 md5）
 $cacheKey = CACHE_PREFIX . md5(!empty($k) ? $k : $url);
 
-// 尝试从 APCu 读取缓存
-$isApcuEnabled = function_exists('apcu_enabled') && apcu_enabled();
-if ($isApcuEnabled) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $cachedData = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $cachedData = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($cachedData !== false ? 'HIT' : 'MISS'));
     if ($cachedData !== false) {
         if ($type === 'down') {
             $cachedJson = json_decode($cachedData, true);
@@ -65,8 +66,8 @@ if (!empty($key) && !empty($code)) {
         'downUrl'  => $downUrl
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-    if ($isApcuEnabled && !empty($downUrl)) {
-        apcu_store($cacheKey, $result, CACHE_TTL);
+    if ($isYacEnabled && !empty($downUrl)) {
+        $yac->set($cacheKey, $result, CACHE_TTL);
     }
 
     // 302跳转
@@ -155,8 +156,8 @@ $result = json_encode([
     'downUrl'  => $downUrl
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-if ($isApcuEnabled && !empty($downUrl)) {
-    apcu_store($cacheKey, $result, CACHE_TTL);
+if ($isYacEnabled && !empty($downUrl)) {
+    $yac->set($cacheKey, $result, CACHE_TTL);
 }
 
 // 302跳转

@@ -25,17 +25,17 @@ if (!in_array($requestParams['type'], ['down', 'json'])) {
     sendErrorResponse('TYPE不合法', 400);
 }
 
-// apcu_clear_cache();
 // 构建完整URL
 // $parsedUrl = parseQFileUrl($requestParams['url']);
 
 $cacheKey = CACHE_PREFIX . md5(json_encode($requestParams));
 
-// 尝试从 APCu 读取缓存
-$isApcuEnabled = function_exists('apcu_enabled') && apcu_enabled();
-if ($isApcuEnabled) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $cachedData = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $cachedData = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($cachedData !== false ? 'HIT' : 'MISS'));
     if ($cachedData !== false) {
         // 缓存命中，跳过 API 请求
         processApiResponse($cachedData, $requestParams['type']);
@@ -55,9 +55,9 @@ if (empty($link)) {
     sendErrorResponse('获取下载链接失败', 500);
 }
 
-// 将新数据存入 APCu 缓存
-if ($isApcuEnabled) {
-    apcu_store($cacheKey, $link, CACHE_TTL);
+// 将新数据存入 Yac 缓存
+if ($isYacEnabled) {
+    $yac->set($cacheKey, $link, CACHE_TTL);
 }
 
 processApiResponse($link, $requestParams['type']);

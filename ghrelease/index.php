@@ -1,5 +1,5 @@
 <?php
-// APCU 缓存配置
+// Yac 缓存配置
 $cacheKeyPrefix = 'ghrelease'; // 唯一缓存键名
 $cacheTTL = 600; // 缓存有效期 10 分钟（秒）
 
@@ -62,10 +62,12 @@ if (!empty($tag) && $tag != 'latest') {
 // 生成缓存键
 $cacheKey = $cacheKeyPrefix . $repo . $tag . $search . $filter;
 
-// 尝试从 APCu 读取缓存
-if (function_exists('apcu_enabled') && apcu_enabled()) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $downloadUrl = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $downloadUrl = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($downloadUrl !== false ? 'HIT' : 'MISS'));
     if ($downloadUrl !== false) {
         if ($type === 'json') {
             header('Content-Type: application/json; charset=utf-8');
@@ -134,9 +136,9 @@ if (!empty($matching_assets)) {
     die('未找到匹配的 release 文件。');
 }
 
-// 将新数据存入 APCu 缓存
-if (function_exists('apcu_store') && !empty($downloadUrl)) {
-    apcu_store($cacheKey, $downloadUrl, $cacheTTL);
+// 将新数据存入 Yac 缓存
+if ($isYacEnabled && !empty($downloadUrl)) {
+    $yac->set($cacheKey, $downloadUrl, $cacheTTL);
 }
 
 // 返回响应

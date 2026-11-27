@@ -1,5 +1,5 @@
 <?php
-// APCU 缓存配置
+// Yac 缓存配置
 $cacheKey = 'hpm_list';
 $cacheTTL = 600;
 
@@ -20,10 +20,12 @@ if (!in_array($type, ['down', 'json'])) {
     die('TYPE不合法');
 }
 
-// 尝试从 APCu 读取缓存
-if (function_exists('apcu_enabled') && apcu_enabled()) {
-    header("X-App-Cache: " . (apcu_exists($cacheKey) ? 'HIT' : 'MISS'));
-    $jsonResponse = apcu_fetch($cacheKey);
+// 尝试从 Yac 读取缓存
+$isYacEnabled = class_exists('Yac');
+$yac = $isYacEnabled ? new Yac() : null;
+if ($isYacEnabled) {
+    $jsonResponse = $yac->get($cacheKey);
+    header("X-App-Cache: " . ($jsonResponse !== false ? 'HIT' : 'MISS'));
     if ($jsonResponse !== false) {
         // 缓存命中，跳过 API 请求
         goto parse_data;
@@ -57,8 +59,8 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // 验证数据完整性后再缓存
-if (function_exists('apcu_store') && isset($jsonResponse['data'])) {
-    apcu_store($cacheKey, $jsonResponse, $cacheTTL);
+if ($isYacEnabled && isset($jsonResponse['data'])) {
+    $yac->set($cacheKey, $jsonResponse, $cacheTTL);
 }
 
 parse_data:

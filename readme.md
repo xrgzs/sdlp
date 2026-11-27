@@ -6,7 +6,7 @@
 一个用于收集不同软件直接下载链接解析方式的后端项目，潇然系统的子项目之一 🌟🚀
 
 [![Docker Image](https://img.shields.io/badge/Docker-ghcr.io%2Fxrgzs%2Fsdlp-blue?logo=docker)](https://ghcr.io/xrgzs/sdlp)
-[![PHP Version](https://img.shields.io/badge/PHP-8.0+-777BB4?logo=php)](https://www.php.net/)
+[![PHP Version](https://img.shields.io/badge/PHP-8.6+-777BB4?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 </div>
@@ -14,7 +14,7 @@
 ## ✨ 特性
 
 - 🔗 **一键直链**：输入软件 ID 或名称，直接跳转到下载链接
-- ⚡ **APCu 缓存**：内置内存缓存支持，减少重复 API 请求
+- ⚡ **Yac 缓存**：内置共享内存缓存支持，减少重复 API 请求
 - 🐳 **Docker 部署**：开箱即用，一条命令即可启动
 - 🔒 **安全加固**：禁用危险函数，关闭 `expose_php`
 - 🌐 **镜像加速**：GitHub Release 支持镜像加速下载
@@ -100,13 +100,13 @@ docker compose up -d
 
 访问 `http://your-domain:5080` 即可使用。
 
-> 💡 Docker 镜像已内置 APCu 扩展，缓存功能开箱即用。
+> 💡 Docker 镜像已内置 Yac 扩展，缓存功能开箱即用。
 
 ### 手动部署
 
 **环境要求：**
-- PHP 8.0+
-- 扩展：`curl`、`apcu`（可选，用于缓存）
+- PHP 8.6+
+- 扩展：`curl`、`yac`（可选，用于缓存）
 
 **安装步骤：**
 
@@ -140,7 +140,7 @@ server {
 
     location ~ \.php(/|$) {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.6-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param PATH_INFO $fastcgi_path_info;
         include fastcgi_params;
@@ -356,7 +356,7 @@ server {
 
 ## ⚡ 缓存机制
 
-项目使用 APCu 内存缓存，减少对外部 API 的重复请求。
+项目使用 Yac 共享内存缓存，减少对外部 API 的重复请求。
 
 ### 缓存策略
 
@@ -378,7 +378,7 @@ server {
 - `HIT`：命中缓存
 - `MISS`：未命中，已请求 API
 
-> 💡 未安装 APCu 扩展时，缓存功能自动禁用，不影响正常使用。
+> 💡 未安装 Yac 扩展时，缓存功能自动禁用，不影响正常使用。
 
 ## 🔄 重试机制
 
